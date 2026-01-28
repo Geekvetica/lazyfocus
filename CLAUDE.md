@@ -246,3 +246,21 @@ go install ./cmd/lazyfocus
 - Support `--quiet` flag for scripting (exit codes only)
 - Task/Project IDs must be stable and usable in subsequent commands
 - Provide clear, parseable output for AI agent consumption
+
+## CI Debugging Commands
+
+When CI fails, use these commands to investigate:
+
+```bash
+# List recent CI runs
+gh run list --limit 5
+
+# View specific run details (shows jobs and annotations)
+gh run view <run-id>
+
+# View failed job logs
+gh run view <run-id> --log-failed
+
+# Watch a running workflow
+gh run watch <run-id>
+```

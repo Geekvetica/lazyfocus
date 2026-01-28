@@ -1,3 +1,5 @@
+// Package domain defines the core data models for LazyFocus including
+// Task, Project, and Tag types that mirror OmniFocus entities.
 package domain
 
 // Project represents a project in OmniFocus

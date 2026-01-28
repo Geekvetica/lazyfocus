@@ -1,3 +1,6 @@
+// Package bridge provides the interface between LazyFocus and OmniFocus
+// via Omni Automation (JavaScript for Automation). It handles script
+// execution, timeout management, and response parsing.
 package bridge
 
 import (
