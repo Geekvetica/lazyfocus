@@ -1,11 +1,13 @@
 package bridge
 
 import (
+	"bytes"
 	"embed"
 	"fmt"
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 const (
@@ -47,4 +49,35 @@ func ListScripts() []string {
 	}
 
 	return scripts
+}
+
+// GetScriptWithParams retrieves a script and replaces placeholders with provided values.
+// Placeholders use the format {{.ParamName}} and are replaced using Go's text/template.
+// If params is nil or empty, returns the original script unchanged.
+// Returns error if script is not found or template parsing fails.
+func GetScriptWithParams(name string, params map[string]string) (string, error) {
+	// Get the base script
+	script, err := GetScript(name)
+	if err != nil {
+		return "", err
+	}
+
+	// If no params provided, return original script
+	if len(params) == 0 {
+		return script, nil
+	}
+
+	// Parse script as template
+	tmpl, err := template.New(name).Parse(script)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse script template: %w", err)
+	}
+
+	// Execute template with params
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, params); err != nil {
+		return "", fmt.Errorf("failed to execute script template: %w", err)
+	}
+
+	return buf.String(), nil
 }
