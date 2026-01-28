@@ -118,8 +118,6 @@ jobs:
   build:
     name: Build
     runs-on: macos-latest
-    # Skip if no main entry point exists yet
-    if: hashFiles('cmd/lazyfocus/main.go') != ''
 
     steps:
       - name: Checkout code
@@ -136,16 +134,24 @@ jobs:
 
       - name: Build binary
         run: |
-          go build -v -o lazyfocus ./cmd/lazyfocus
+          if [ -f ./cmd/lazyfocus/main.go ]; then
+            go build -v -o lazyfocus ./cmd/lazyfocus
+          else
+            echo "Skipping build: cmd/lazyfocus/main.go not found"
+          fi
 
       - name: Verify binary
         run: |
-          if [ ! -f ./lazyfocus ]; then
-            echo "Error: Binary was not created"
-            exit 1
+          if [ -f ./cmd/lazyfocus/main.go ]; then
+            if [ ! -f ./lazyfocus ]; then
+              echo "Error: Binary was not created"
+              exit 1
+            fi
+            echo "✓ Binary compiled successfully"
+            file ./lazyfocus
+          else
+            echo "Skipping verification: no binary to verify"
           fi
-          echo "✓ Binary compiled successfully"
-          file ./lazyfocus
 
   # ===========================================================================
   # Job: coverage
