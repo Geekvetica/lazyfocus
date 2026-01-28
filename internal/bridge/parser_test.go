@@ -380,3 +380,451 @@ func TestParseProjects_WithTasks(t *testing.T) {
 		t.Errorf("expected task name 'Task 1', got '%s'", task.Name)
 	}
 }
+
+// Tests for ParseTask (single task response)
+
+func TestParseTask_ValidJSON(t *testing.T) {
+	jsonStr := `{
+		"task": {
+			"id": "abc123",
+			"name": "Buy groceries",
+			"note": "Remember milk",
+			"tags": ["errands"],
+			"dueDate": "2025-01-28T17:00:00.000Z",
+			"deferDate": null,
+			"flagged": true,
+			"completed": false,
+			"completedDate": null
+		}
+	}`
+
+	task, err := ParseTask(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if task == nil {
+		t.Fatal("expected task, got nil")
+	}
+
+	if task.ID != "abc123" {
+		t.Errorf("expected ID 'abc123', got '%s'", task.ID)
+	}
+	if task.Name != "Buy groceries" {
+		t.Errorf("expected name 'Buy groceries', got '%s'", task.Name)
+	}
+	if task.Note != "Remember milk" {
+		t.Errorf("expected note 'Remember milk', got '%s'", task.Note)
+	}
+	if !task.Flagged {
+		t.Error("expected task to be flagged")
+	}
+	if len(task.Tags) != 1 || task.Tags[0] != "errands" {
+		t.Errorf("expected tags ['errands'], got %v", task.Tags)
+	}
+}
+
+func TestParseTask_MalformedJSON(t *testing.T) {
+	jsonStr := `{"task": {`
+
+	_, err := ParseTask(jsonStr)
+
+	if err == nil {
+		t.Error("expected error for malformed JSON, got nil")
+	}
+}
+
+func TestParseTask_ErrorField(t *testing.T) {
+	jsonStr := `{"error": "Task not found"}`
+
+	_, err := ParseTask(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when JSON contains error field")
+	}
+
+	expectedMsg := "Task not found"
+	if err.Error() != expectedMsg {
+		t.Errorf("expected error message '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestParseTask_OmniFocusNotRunning(t *testing.T) {
+	jsonStr := `{"error": "OmniFocus is not running"}`
+
+	_, err := ParseTask(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when OmniFocus is not running")
+	}
+
+	if err != ErrOmniFocusNotRunning {
+		t.Errorf("expected ErrOmniFocusNotRunning, got %v", err)
+	}
+}
+
+// Tests for ParseProject (single project response)
+
+func TestParseProject_ValidJSON(t *testing.T) {
+	jsonStr := `{
+		"project": {
+			"id": "xyz789",
+			"name": "Home Renovation",
+			"status": "active",
+			"note": "Kitchen project"
+		}
+	}`
+
+	project, err := ParseProject(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if project == nil {
+		t.Fatal("expected project, got nil")
+	}
+
+	if project.ID != "xyz789" {
+		t.Errorf("expected ID 'xyz789', got '%s'", project.ID)
+	}
+	if project.Name != "Home Renovation" {
+		t.Errorf("expected name 'Home Renovation', got '%s'", project.Name)
+	}
+	if project.Status != "active" {
+		t.Errorf("expected status 'active', got '%s'", project.Status)
+	}
+	if project.Note != "Kitchen project" {
+		t.Errorf("expected note 'Kitchen project', got '%s'", project.Note)
+	}
+}
+
+func TestParseProject_MalformedJSON(t *testing.T) {
+	jsonStr := `{"project": {`
+
+	_, err := ParseProject(jsonStr)
+
+	if err == nil {
+		t.Error("expected error for malformed JSON, got nil")
+	}
+}
+
+func TestParseProject_ErrorField(t *testing.T) {
+	jsonStr := `{"error": "Project not found"}`
+
+	_, err := ParseProject(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when JSON contains error field")
+	}
+
+	expectedMsg := "Project not found"
+	if err.Error() != expectedMsg {
+		t.Errorf("expected error message '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestParseProject_OmniFocusNotRunning(t *testing.T) {
+	jsonStr := `{"error": "OmniFocus is not running"}`
+
+	_, err := ParseProject(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when OmniFocus is not running")
+	}
+
+	if err != ErrOmniFocusNotRunning {
+		t.Errorf("expected ErrOmniFocusNotRunning, got %v", err)
+	}
+}
+
+// Tests for ParseTag (single tag response)
+
+func TestParseTag_ValidJSON(t *testing.T) {
+	jsonStr := `{
+		"tag": {
+			"id": "tag123",
+			"name": "work"
+		}
+	}`
+
+	tag, err := ParseTag(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if tag == nil {
+		t.Fatal("expected tag, got nil")
+	}
+
+	if tag.ID != "tag123" {
+		t.Errorf("expected ID 'tag123', got '%s'", tag.ID)
+	}
+	if tag.Name != "work" {
+		t.Errorf("expected name 'work', got '%s'", tag.Name)
+	}
+}
+
+func TestParseTag_WithChildren(t *testing.T) {
+	jsonStr := `{
+		"tag": {
+			"id": "parent123",
+			"name": "projects",
+			"children": [
+				{
+					"id": "child1",
+					"name": "web",
+					"parentId": "parent123"
+				}
+			]
+		}
+	}`
+
+	tag, err := ParseTag(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if tag == nil {
+		t.Fatal("expected tag, got nil")
+	}
+
+	if tag.ID != "parent123" {
+		t.Errorf("expected ID 'parent123', got '%s'", tag.ID)
+	}
+	if len(tag.Children) != 1 {
+		t.Fatalf("expected 1 child, got %d", len(tag.Children))
+	}
+	if tag.Children[0].ID != "child1" {
+		t.Errorf("expected child ID 'child1', got '%s'", tag.Children[0].ID)
+	}
+}
+
+func TestParseTag_MalformedJSON(t *testing.T) {
+	jsonStr := `{"tag": {`
+
+	_, err := ParseTag(jsonStr)
+
+	if err == nil {
+		t.Error("expected error for malformed JSON, got nil")
+	}
+}
+
+func TestParseTag_ErrorField(t *testing.T) {
+	jsonStr := `{"error": "Tag not found"}`
+
+	_, err := ParseTag(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when JSON contains error field")
+	}
+
+	expectedMsg := "Tag not found"
+	if err.Error() != expectedMsg {
+		t.Errorf("expected error message '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestParseTag_OmniFocusNotRunning(t *testing.T) {
+	jsonStr := `{"error": "OmniFocus is not running"}`
+
+	_, err := ParseTag(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when OmniFocus is not running")
+	}
+
+	if err != ErrOmniFocusNotRunning {
+		t.Errorf("expected ErrOmniFocusNotRunning, got %v", err)
+	}
+}
+
+// Tests for ParseTags (array of tags response)
+
+func TestParseTags_ValidJSON(t *testing.T) {
+	jsonStr := `{
+		"tags": [
+			{
+				"id": "tag1",
+				"name": "work"
+			},
+			{
+				"id": "tag2",
+				"name": "personal"
+			}
+		]
+	}`
+
+	tags, err := ParseTags(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(tags) != 2 {
+		t.Fatalf("expected 2 tags, got %d", len(tags))
+	}
+
+	if tags[0].ID != "tag1" {
+		t.Errorf("expected first tag ID 'tag1', got '%s'", tags[0].ID)
+	}
+	if tags[0].Name != "work" {
+		t.Errorf("expected first tag name 'work', got '%s'", tags[0].Name)
+	}
+
+	if tags[1].ID != "tag2" {
+		t.Errorf("expected second tag ID 'tag2', got '%s'", tags[1].ID)
+	}
+	if tags[1].Name != "personal" {
+		t.Errorf("expected second tag name 'personal', got '%s'", tags[1].Name)
+	}
+}
+
+func TestParseTags_EmptyArray(t *testing.T) {
+	jsonStr := `{"tags": []}`
+
+	tags, err := ParseTags(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error for empty array, got %v", err)
+	}
+
+	if len(tags) != 0 {
+		t.Errorf("expected empty slice, got %d tags", len(tags))
+	}
+
+	if tags == nil {
+		t.Error("expected non-nil slice, got nil")
+	}
+}
+
+func TestParseTags_MalformedJSON(t *testing.T) {
+	jsonStr := `{"tags": [`
+
+	_, err := ParseTags(jsonStr)
+
+	if err == nil {
+		t.Error("expected error for malformed JSON, got nil")
+	}
+}
+
+func TestParseTags_ErrorField(t *testing.T) {
+	jsonStr := `{"error": "Failed to fetch tags"}`
+
+	_, err := ParseTags(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when JSON contains error field")
+	}
+
+	expectedMsg := "Failed to fetch tags"
+	if err.Error() != expectedMsg {
+		t.Errorf("expected error message '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestParseTags_OmniFocusNotRunning(t *testing.T) {
+	jsonStr := `{"error": "OmniFocus is not running"}`
+
+	_, err := ParseTags(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when OmniFocus is not running")
+	}
+
+	if err != ErrOmniFocusNotRunning {
+		t.Errorf("expected ErrOmniFocusNotRunning, got %v", err)
+	}
+}
+
+// Tests for ParseTagCounts (map of tag names to counts)
+
+func TestParseTagCounts_ValidJSON(t *testing.T) {
+	jsonStr := `{
+		"counts": {
+			"work": 5,
+			"personal": 10,
+			"errands": 3
+		}
+	}`
+
+	counts, err := ParseTagCounts(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(counts) != 3 {
+		t.Fatalf("expected 3 counts, got %d", len(counts))
+	}
+
+	if counts["work"] != 5 {
+		t.Errorf("expected work count 5, got %d", counts["work"])
+	}
+	if counts["personal"] != 10 {
+		t.Errorf("expected personal count 10, got %d", counts["personal"])
+	}
+	if counts["errands"] != 3 {
+		t.Errorf("expected errands count 3, got %d", counts["errands"])
+	}
+}
+
+func TestParseTagCounts_EmptyMap(t *testing.T) {
+	jsonStr := `{"counts": {}}`
+
+	counts, err := ParseTagCounts(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error for empty map, got %v", err)
+	}
+
+	if len(counts) != 0 {
+		t.Errorf("expected empty map, got %d counts", len(counts))
+	}
+
+	if counts == nil {
+		t.Error("expected non-nil map, got nil")
+	}
+}
+
+func TestParseTagCounts_MalformedJSON(t *testing.T) {
+	jsonStr := `{"counts": {`
+
+	_, err := ParseTagCounts(jsonStr)
+
+	if err == nil {
+		t.Error("expected error for malformed JSON, got nil")
+	}
+}
+
+func TestParseTagCounts_ErrorField(t *testing.T) {
+	jsonStr := `{"error": "Failed to count tags"}`
+
+	_, err := ParseTagCounts(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when JSON contains error field")
+	}
+
+	expectedMsg := "Failed to count tags"
+	if err.Error() != expectedMsg {
+		t.Errorf("expected error message '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestParseTagCounts_OmniFocusNotRunning(t *testing.T) {
+	jsonStr := `{"error": "OmniFocus is not running"}`
+
+	_, err := ParseTagCounts(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when OmniFocus is not running")
+	}
+
+	if err != ErrOmniFocusNotRunning {
+		t.Errorf("expected ErrOmniFocusNotRunning, got %v", err)
+	}
+}

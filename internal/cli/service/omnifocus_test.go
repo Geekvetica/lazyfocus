@@ -258,9 +258,7 @@ func TestGetAllTasks_WithFilters_ReturnsFilteredTasks(t *testing.T) {
 
 func TestGetTaskByID_Success_ReturnsSingleTask(t *testing.T) {
 	taskID := "task-789"
-	expectedJSON := `{"tasks": [
-		{"id": "task-789", "name": "Specific Task", "completed": false}
-	]}`
+	expectedJSON := `{"task": {"id": "task-789", "name": "Specific Task", "completed": false}}`
 
 	executor := &mockExecutor{
 		executeFunc: func(script string) (string, error) {
@@ -287,7 +285,7 @@ func TestGetTaskByID_Success_ReturnsSingleTask(t *testing.T) {
 func TestGetTaskByID_NotFound_ReturnsError(t *testing.T) {
 	executor := &mockExecutor{
 		executeFunc: func(script string) (string, error) {
-			return `{"tasks": []}`, nil
+			return `{"task": null}`, nil
 		},
 	}
 
@@ -305,9 +303,7 @@ func TestGetTaskByID_NotFound_ReturnsError(t *testing.T) {
 
 func TestGetProjectByID_Success_ReturnsSingleProject(t *testing.T) {
 	projectID := "proj-123"
-	expectedJSON := `{"projects": [
-		{"id": "proj-123", "name": "My Project", "status": "active"}
-	]}`
+	expectedJSON := `{"project": {"id": "proj-123", "name": "My Project", "status": "active"}}`
 
 	executor := &mockExecutor{
 		executeFunc: func(script string) (string, error) {
@@ -333,16 +329,14 @@ func TestGetProjectByID_Success_ReturnsSingleProject(t *testing.T) {
 
 func TestGetProjectWithTasks_Success_ReturnsProjectWithTasks(t *testing.T) {
 	projectID := "proj-456"
-	expectedJSON := `{"projects": [
-		{
-			"id": "proj-456",
-			"name": "Project With Tasks",
-			"status": "active",
-			"tasks": [
-				{"id": "task1", "name": "Task 1", "completed": false}
-			]
-		}
-	]}`
+	expectedJSON := `{"project": {
+		"id": "proj-456",
+		"name": "Project With Tasks",
+		"status": "active",
+		"tasks": [
+			{"id": "task1", "name": "Task 1", "completed": false}
+		]
+	}}`
 
 	executor := &mockExecutor{
 		executeFunc: func(script string) (string, error) {
