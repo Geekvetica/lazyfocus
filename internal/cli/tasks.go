@@ -131,6 +131,9 @@ func handleError(cmd *cobra.Command, err error) error {
 }
 
 // filterTasksByDueDate filters tasks by due date
+// Tasks with due dates on or before the specified date are included.
+// Timezone handling: dates from OmniFocus come as UTC ISO strings and are
+// compared correctly with local timezone dates using Go's time.Time comparison.
 func filterTasksByDueDate(tasks []domain.Task, dueStr string) ([]domain.Task, error) {
 	dueDate, err := parseDueDate(dueStr)
 	if err != nil {
@@ -148,21 +151,23 @@ func filterTasksByDueDate(tasks []domain.Task, dueStr string) ([]domain.Task, er
 }
 
 // parseDueDate parses a due date string (today, tomorrow, or YYYY-MM-DD)
+// Returns a time at 23:59:59 in the local timezone to include all tasks due on that day
 func parseDueDate(dueStr string) (time.Time, error) {
 	now := time.Now()
+	loc := now.Location()
 
 	switch dueStr {
 	case "today":
-		return time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location()), nil
+		return time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, loc), nil
 	case "tomorrow":
 		tomorrow := now.AddDate(0, 0, 1)
-		return time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 23, 59, 59, 0, tomorrow.Location()), nil
+		return time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 23, 59, 59, 0, loc), nil
 	default:
-		// Try to parse as YYYY-MM-DD
-		parsed, err := time.Parse("2006-01-02", dueStr)
+		// Try to parse as YYYY-MM-DD in local timezone
+		parsed, err := time.ParseInLocation("2006-01-02", dueStr, loc)
 		if err != nil {
 			return time.Time{}, fmt.Errorf("expected 'today', 'tomorrow', or YYYY-MM-DD format: %w", err)
 		}
-		return time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 0, parsed.Location()), nil
+		return time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 0, loc), nil
 	}
 }

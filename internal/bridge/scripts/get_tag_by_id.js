@@ -40,7 +40,7 @@
     }
 
     if (!targetTag) {
-      return JSON.stringify({ error: "Tag not found" });
+      return JSON.stringify({ error: `Tag not found: ${tagID}` });
     }
 
     // Get child tags

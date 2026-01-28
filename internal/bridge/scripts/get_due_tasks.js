@@ -11,10 +11,14 @@
     const doc = app.defaultDocument;
 
     // Template parameters (filled by Go)
+    // Dates should be passed as RFC3339/ISO 8601 strings with timezone info
+    // e.g., "2024-01-28T23:59:59+01:00" or "2024-01-28T22:59:59Z"
     const dueStartStr = "{{.DueStart}}";
     const dueEndStr = "{{.DueEnd}}";
 
     // Parse date parameters
+    // JavaScript's Date constructor handles RFC3339/ISO 8601 strings correctly,
+    // converting them to local time while preserving the absolute moment
     let dueStart = null;
     let dueEnd = null;
 

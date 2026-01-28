@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 )
@@ -13,7 +14,10 @@ import (
 const (
 	scriptExtension = ".js"
 	scriptsDir      = "scripts"
+	maxIDLength     = 100
 )
+
+var idPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 //go:embed scripts/*.js
 var scriptsFS embed.FS
@@ -51,10 +55,27 @@ func ListScripts() []string {
 	return scripts
 }
 
+// ValidateID checks that an ID is safe for use in script templates.
+// It prevents script injection by ensuring IDs only contain safe characters.
+// Returns error if ID is empty, too long, or contains unsafe characters.
+func ValidateID(id string) error {
+	if len(id) == 0 {
+		return fmt.Errorf("ID cannot be empty")
+	}
+	if len(id) > maxIDLength {
+		return fmt.Errorf("ID too long: max %d characters", maxIDLength)
+	}
+	if !idPattern.MatchString(id) {
+		return fmt.Errorf("invalid ID format: only alphanumeric, hyphen, underscore allowed")
+	}
+	return nil
+}
+
 // GetScriptWithParams retrieves a script and replaces placeholders with provided values.
 // Placeholders use the format {{.ParamName}} and are replaced using Go's text/template.
 // If params is nil or empty, returns the original script unchanged.
-// Returns error if script is not found or template parsing fails.
+// All parameter values are validated before template execution to prevent script injection.
+// Returns error if script is not found, parameters are invalid, or template parsing fails.
 func GetScriptWithParams(name string, params map[string]string) (string, error) {
 	// Get the base script
 	script, err := GetScript(name)
@@ -65,6 +86,13 @@ func GetScriptWithParams(name string, params map[string]string) (string, error) 
 	// If no params provided, return original script
 	if len(params) == 0 {
 		return script, nil
+	}
+
+	// Validate all parameter values before template execution
+	for key, value := range params {
+		if err := ValidateID(value); err != nil {
+			return "", fmt.Errorf("invalid parameter %q: %w", key, err)
+		}
 	}
 
 	// Parse script as template

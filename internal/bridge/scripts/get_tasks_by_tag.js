@@ -23,7 +23,7 @@
     }
 
     if (!targetTag) {
-      return JSON.stringify({ error: "Tag not found" });
+      return JSON.stringify({ error: `Tag not found: ${tagID}` });
     }
 
     // Get all tasks and filter by tag

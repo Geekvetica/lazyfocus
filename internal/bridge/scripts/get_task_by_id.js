@@ -23,7 +23,7 @@
     }
 
     if (!targetTask) {
-      return JSON.stringify({ error: "Task not found" });
+      return JSON.stringify({ error: `Task not found: ${taskID}` });
     }
 
     // Extract tag names from task tags

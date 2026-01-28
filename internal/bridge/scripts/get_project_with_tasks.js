@@ -23,7 +23,7 @@
     }
 
     if (!targetProject) {
-      return JSON.stringify({ error: "Project not found" });
+      return JSON.stringify({ error: `Project not found: ${projectID}` });
     }
 
     // Determine project status

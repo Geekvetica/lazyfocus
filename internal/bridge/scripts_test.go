@@ -175,3 +175,123 @@ func TestGetScriptWithParams_NilParams_ReturnsOriginalScript(t *testing.T) {
 		t.Errorf("GetScriptWithParams() with nil params should return same as GetScript()")
 	}
 }
+
+// TestValidateID tests ID validation for script injection prevention
+func TestValidateID(t *testing.T) {
+	tests := []struct {
+		name    string
+		id      string
+		wantErr bool
+	}{
+		// Valid IDs
+		{name: "Valid alphanumeric", id: "abc123", wantErr: false},
+		{name: "Valid with hyphen", id: "task-1", wantErr: false},
+		{name: "Valid with underscore", id: "project_name", wantErr: false},
+		{name: "Valid mixed case", id: "ABC-123_test", wantErr: false},
+		{name: "Valid all uppercase", id: "TASKID", wantErr: false},
+		{name: "Valid all lowercase", id: "taskid", wantErr: false},
+		{name: "Valid all numbers", id: "123456", wantErr: false},
+		{name: "Valid complex", id: "abc-123_DEF-456_xyz", wantErr: false},
+
+		// Invalid IDs
+		{name: "Empty string", id: "", wantErr: true},
+		{name: "Too long", id: strings.Repeat("a", 101), wantErr: true},
+		{name: "Contains double quote", id: "task\"123", wantErr: true},
+		{name: "Contains single quote", id: "task'123", wantErr: true},
+		{name: "Contains semicolon", id: "task;123", wantErr: true},
+		{name: "Contains left brace", id: "task{123", wantErr: true},
+		{name: "Contains right brace", id: "task}123", wantErr: true},
+		{name: "Contains left paren", id: "task(123", wantErr: true},
+		{name: "Contains right paren", id: "task)123", wantErr: true},
+		{name: "Contains backtick", id: "task`123", wantErr: true},
+		{name: "Contains dollar sign", id: "task$123", wantErr: true},
+		{name: "Contains backslash", id: "task\\123", wantErr: true},
+		{name: "Contains forward slash", id: "task/123", wantErr: true},
+		{name: "Contains space", id: "task 123", wantErr: true},
+		{name: "Contains newline", id: "task\n123", wantErr: true},
+		{name: "Contains tab", id: "task\t123", wantErr: true},
+
+		// Injection attempts
+		{name: "Injection with semicolon", id: "\"; malicious code; \"", wantErr: true},
+		{name: "Injection with OR", id: "' || true", wantErr: true},
+		{name: "Injection with template", id: "${injection}", wantErr: true},
+		{name: "Injection with eval", id: "eval(code)", wantErr: true},
+		{name: "Injection with comment", id: "task//comment", wantErr: true},
+		{name: "Injection with multiline comment", id: "task/*comment*/", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateID(tt.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateID(%q) error = %v, wantErr %v", tt.id, err, tt.wantErr)
+			}
+			if err != nil && !strings.Contains(err.Error(), "ID") {
+				t.Errorf("ValidateID(%q) error message should contain 'ID', got: %v", tt.id, err)
+			}
+		})
+	}
+}
+
+// TestGetScriptWithParams_ValidatesParameters tests that parameters are validated before template execution
+func TestGetScriptWithParams_ValidatesParameters(t *testing.T) {
+	tests := []struct {
+		name    string
+		params  map[string]string
+		wantErr bool
+	}{
+		{
+			name:    "Valid parameters",
+			params:  map[string]string{"TaskID": "task-123", "ProjectID": "proj_456"},
+			wantErr: false,
+		},
+		{
+			name:    "Invalid parameter with quote",
+			params:  map[string]string{"TaskID": "task\"123"},
+			wantErr: true,
+		},
+		{
+			name:    "Invalid parameter with semicolon",
+			params:  map[string]string{"TaskID": "task;malicious"},
+			wantErr: true,
+		},
+		{
+			name:    "Invalid parameter with injection attempt",
+			params:  map[string]string{"TaskID": "\"; malicious code; \""},
+			wantErr: true,
+		},
+		{
+			name:    "Invalid empty parameter",
+			params:  map[string]string{"TaskID": ""},
+			wantErr: true,
+		},
+		{
+			name:    "Invalid too long parameter",
+			params:  map[string]string{"TaskID": strings.Repeat("a", 101)},
+			wantErr: true,
+		},
+		{
+			name:    "Multiple params with one invalid",
+			params:  map[string]string{"TaskID": "valid-123", "ProjectID": "invalid${injection}"},
+			wantErr: true,
+		},
+		{
+			name:    "Multiple valid params",
+			params:  map[string]string{"TaskID": "task-123", "ProjectID": "proj-456", "TagID": "tag_789"},
+			wantErr: false,
+		},
+	}
+
+	scriptName := "get_inbox_tasks"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := GetScriptWithParams(scriptName, tt.params)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetScriptWithParams() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr && err != nil && !strings.Contains(err.Error(), "invalid") && !strings.Contains(err.Error(), "ID") {
+				t.Errorf("GetScriptWithParams() error should mention validation failure, got: %v", err)
+			}
+		})
+	}
+}
