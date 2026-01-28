@@ -118,6 +118,8 @@ jobs:
   build:
     name: Build
     runs-on: macos-latest
+    # Skip if no main entry point exists yet
+    if: hashFiles('cmd/lazyfocus/main.go') != ''
 
     steps:
       - name: Checkout code

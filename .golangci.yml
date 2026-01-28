@@ -43,8 +43,6 @@ output:
   print-issued-lines: true
   # Print linter name in the end of issue text
   print-linter-name: true
-  # Make issues output unique by line
-  uniq-by-line: true
   # Sort results by: filepath, line, and column
   sort-results: true
 
@@ -160,6 +158,8 @@ linters-settings:
 
 # Issue filtering and exclusions
 issues:
+  # Make issues output unique by line
+  uniq-by-line: true
   # Maximum issues count per one linter (0 = unlimited)
   max-issues-per-linter: 0
   # Maximum count of issues with the same text (0 = unlimited)
