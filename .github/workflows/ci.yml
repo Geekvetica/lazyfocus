@@ -1,0 +1,184 @@
+# =============================================================================
+# LazyFocus CI Workflow
+# =============================================================================
+# Purpose: Continuous Integration pipeline for the LazyFocus Go CLI/TUI tool
+#
+# This workflow provides fast feedback through parallel execution of linting,
+# testing, and building. It handles the unique constraint that LazyFocus
+# requires macOS for full functionality (osascript/OmniFocus integration).
+#
+# Jobs:
+#   - lint: Code quality checks using golangci-lint (fast feedback)
+#   - test: Unit tests with race detection and coverage (Linux-compatible subset)
+#   - build: Full compilation verification on macOS (validates osascript code)
+#   - coverage: Upload coverage reports to Codecov (requires CODECOV_TOKEN)
+#
+# Optimization Features:
+#   - Parallel job execution (lint, test, build run simultaneously)
+#   - Go module caching for faster dependency installation
+#   - Concurrency control to cancel outdated PR runs
+#   - Minimal Ubuntu runners where possible (cost-effective)
+#   - macOS runner only for build job (required for osascript)
+#
+# =============================================================================
+
+name: CI
+
+on:
+  # Run on pushes to main branch
+  push:
+    branches: [main]
+
+  # Run on all pull requests targeting main
+  pull_request:
+    branches: [main]
+
+  # Allow manual workflow dispatch for testing
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same PR/branch to save resources
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # Job: lint
+  # ===========================================================================
+  # Fast code quality checks using golangci-lint
+  # Runs on Ubuntu for speed and cost efficiency
+  # Provides early feedback on style, complexity, and common issues
+  # ===========================================================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          # Use configuration from .golangci.yml
+          # This action automatically caches linter results
+          version: latest
+          args: --timeout=3m
+
+  # ===========================================================================
+  # Job: test
+  # ===========================================================================
+  # Unit tests with race detection and coverage collection
+  # Runs on Ubuntu (some tests will skip due to missing osascript)
+  # Coverage artifact is passed to the coverage job for Codecov upload
+  # ===========================================================================
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: |
+          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        # Note: Tests requiring osascript will be skipped on Linux
+        # The executor package should detect the platform and skip gracefully
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+          retention-days: 1
+
+  # ===========================================================================
+  # Job: build
+  # ===========================================================================
+  # Full compilation verification on macOS
+  # Required because LazyFocus uses osascript for OmniFocus integration
+  # Ensures all packages compile correctly on the target platform
+  # ===========================================================================
+  build:
+    name: Build
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build binary
+        run: |
+          go build -v -o lazyfocus ./cmd/lazyfocus
+
+      - name: Verify binary
+        run: |
+          if [ ! -f ./lazyfocus ]; then
+            echo "Error: Binary was not created"
+            exit 1
+          fi
+          echo "✓ Binary compiled successfully"
+          file ./lazyfocus
+
+  # ===========================================================================
+  # Job: coverage
+  # ===========================================================================
+  # Upload coverage reports to Codecov for tracking over time
+  # Depends on test job completing successfully
+  #
+  # Setup Required:
+  #   1. Sign up at https://codecov.io
+  #   2. Add repository to Codecov
+  #   3. Add CODECOV_TOKEN to GitHub repository secrets
+  #      (Settings → Secrets and variables → Actions → New repository secret)
+  # ===========================================================================
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: test
+    # Don't fail the entire workflow if coverage upload fails
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          # Provide context for better Codecov analysis
+          flags: unittests
+          name: codecov-lazyfocus

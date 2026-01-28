@@ -1,0 +1,189 @@
+# =============================================================================
+# golangci-lint Configuration for LazyFocus
+# =============================================================================
+# Purpose: Comprehensive linting configuration for Go code quality
+#
+# This configuration balances strictness with practicality, focusing on:
+#   - Code correctness (govet, staticcheck, errcheck)
+#   - Code simplicity (gosimple, unused, ineffassign)
+#   - Code style (gofmt, goimports, revive)
+#   - Security concerns (gosec)
+#   - Maintainability (gocyclo, misspell)
+#
+# Philosophy:
+#   - Catch real issues without excessive false positives
+#   - Allow reasonable test code patterns (skip some checks in tests)
+#   - Keep cognitive complexity manageable (threshold: 15)
+#   - Enforce consistent formatting and imports
+#
+# Usage:
+#   golangci-lint run                    # Lint all packages
+#   golangci-lint run ./internal/...     # Lint specific package
+#   golangci-lint run --fix              # Auto-fix issues where possible
+#
+# Integration:
+#   - CI: Automatically runs on every PR via .github/workflows/ci.yml
+#   - Local: Can be integrated into pre-commit hooks
+#   - IDE: Most Go IDEs support golangci-lint integration
+#
+# =============================================================================
+
+# Timeout for analysis (increase if you have a very large codebase)
+run:
+  timeout: 3m
+  # Enable parallel execution for faster linting
+  concurrency: 4
+
+# Output configuration
+output:
+  # Format: colored-line-number, line-number, json, tab, checkstyle, code-climate
+  formats:
+    - format: colored-line-number
+  # Print lines of code with issue
+  print-issued-lines: true
+  # Print linter name in the end of issue text
+  print-linter-name: true
+  # Make issues output unique by line
+  uniq-by-line: true
+  # Sort results by: filepath, line, and column
+  sort-results: true
+
+# Linter configuration
+linters:
+  # Disable all linters by default, then explicitly enable the ones we want
+  disable-all: true
+  enable:
+    # -------------------------------------------------------------------------
+    # Formatting & Imports
+    # -------------------------------------------------------------------------
+    - gofmt        # Checks whether code was gofmt-ed
+    - goimports    # Checks import grouping and ordering
+
+    # -------------------------------------------------------------------------
+    # Code Correctness & Static Analysis
+    # -------------------------------------------------------------------------
+    - govet        # Official Go static analyzer (reports suspicious constructs)
+    - staticcheck  # Advanced static analysis (finds bugs, performance issues)
+    - errcheck     # Checks for unchecked errors
+
+    # -------------------------------------------------------------------------
+    # Code Quality & Simplification
+    # -------------------------------------------------------------------------
+    - gosimple     # Suggests code simplifications
+    - unused       # Checks for unused constants, variables, functions, types
+    - ineffassign  # Detects ineffectual assignments
+
+    # -------------------------------------------------------------------------
+    # Code Style & Readability
+    # -------------------------------------------------------------------------
+    - revive       # Fast, configurable, extensible, flexible linter
+    - misspell     # Finds commonly misspelled English words in comments
+
+    # -------------------------------------------------------------------------
+    # Complexity & Maintainability
+    # -------------------------------------------------------------------------
+    - gocyclo      # Computes cyclomatic complexity
+
+    # -------------------------------------------------------------------------
+    # Security
+    # -------------------------------------------------------------------------
+    - gosec        # Inspects source code for security problems
+
+# Linter-specific settings
+linters-settings:
+  # ---------------------------------------------------------------------------
+  # gocyclo: Cyclomatic Complexity
+  # ---------------------------------------------------------------------------
+  # Threshold of 15 is reasonable for most functions
+  # Functions above this should be refactored for maintainability
+  # ---------------------------------------------------------------------------
+  gocyclo:
+    min-complexity: 15
+
+  # ---------------------------------------------------------------------------
+  # gosec: Security Analysis
+  # ---------------------------------------------------------------------------
+  # Configure security checks
+  # ---------------------------------------------------------------------------
+  gosec:
+    # Audit mode runs all checks without filtering
+    confidence: medium
+    # Include test files in security analysis
+    excludes:
+      # G404: Use of weak random number generator - acceptable in tests
+      - G404
+
+  # ---------------------------------------------------------------------------
+  # revive: Code Style
+  # ---------------------------------------------------------------------------
+  # Flexible linter with many configurable rules
+  # ---------------------------------------------------------------------------
+  revive:
+    # Increase severity to warning for all rules
+    severity: warning
+    # Enable default rules
+    enable-all-rules: false
+    rules:
+      # Code quality
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: increment-decrement
+      - name: var-naming
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+  # ---------------------------------------------------------------------------
+  # errcheck: Error Checking
+  # ---------------------------------------------------------------------------
+  # Ensures errors are handled properly
+  # ---------------------------------------------------------------------------
+  errcheck:
+    # Check type assertions (a := b.(MyType))
+    check-type-assertions: true
+    # Check blank assignments (a, _ := f())
+    check-blank: false
+
+# Issue filtering and exclusions
+issues:
+  # Maximum issues count per one linter (0 = unlimited)
+  max-issues-per-linter: 0
+  # Maximum count of issues with the same text (0 = unlimited)
+  max-same-issues: 0
+
+  # Exclude specific rules in test files
+  exclude-rules:
+    # Allow unchecked errors in test files for test helpers
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+
+    # Allow complexity in table-driven tests
+    - path: _test\.go
+      linters:
+        - gocyclo
+
+    # Exclude known false positives or low-priority issues
+    - text: "weak cryptographic primitive"
+      linters:
+        - gosec
+      # Allow weak crypto in test fixtures
+
+  # Independently of option `exclude` we use default exclude patterns,
+  # it can be disabled by this option.
+  exclude-use-default: false
