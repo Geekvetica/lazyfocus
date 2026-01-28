@@ -6,10 +6,10 @@ import "github.com/pwojciechowski/lazyfocus/internal/domain"
 
 // Exit codes used by LazyFocus CLI
 const (
-	ExitSuccess          = 0 // Successful execution
-	ExitGeneralError     = 1 // General error
+	ExitSuccess             = 0 // Successful execution
+	ExitGeneralError        = 1 // General error
 	ExitOmniFocusNotRunning = 2 // OmniFocus is not running
-	ExitItemNotFound     = 3 // Requested item not found
+	ExitItemNotFound        = 3 // Requested item not found
 )
 
 // Formatter defines the interface for formatting LazyFocus output

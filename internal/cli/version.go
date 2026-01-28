@@ -27,11 +27,11 @@ func NewVersionCommand() *cobra.Command {
 }
 
 func runVersion(cmd *cobra.Command, args []string) {
-	fmt.Fprintf(cmd.OutOrStdout(), "lazyfocus version %s\n", Version)
+	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "lazyfocus version %s\n", Version)
 	if BuildDate != "unknown" {
-		fmt.Fprintf(cmd.OutOrStdout(), "Build date: %s\n", BuildDate)
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Build date: %s\n", BuildDate)
 	}
 	if GitCommit != "unknown" {
-		fmt.Fprintf(cmd.OutOrStdout(), "Git commit: %s\n", GitCommit)
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Git commit: %s\n", GitCommit)
 	}
 }

@@ -3,8 +3,6 @@ package cli
 import (
 	"testing"
 	"time"
-
-	"github.com/spf13/cobra"
 )
 
 func TestRootCommand_Flags(t *testing.T) {
@@ -148,11 +146,4 @@ func TestGetTimeoutFlag(t *testing.T) {
 	if timeout != 60*time.Second {
 		t.Errorf("GetTimeoutFlag() = %v, want 1m after setting flag", timeout)
 	}
-}
-
-// Helper function to reset flags between tests
-func resetFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().Set("json", "false")
-	cmd.PersistentFlags().Set("quiet", "false")
-	cmd.PersistentFlags().Set("timeout", "30s")
 }

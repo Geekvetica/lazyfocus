@@ -7,18 +7,18 @@ import (
 // MockOmniFocusService is a mock implementation of OmniFocusService for testing
 type MockOmniFocusService struct {
 	// Tasks
-	InboxTasks       []domain.Task
-	InboxTasksErr    error
-	AllTasks         []domain.Task
-	AllTasksErr      error
-	ProjectTasks     []domain.Task
-	ProjectTasksErr  error
-	TagTasks         []domain.Task
-	TagTasksErr      error
-	FlaggedTasks     []domain.Task
-	FlaggedTasksErr  error
-	Task             *domain.Task
-	TaskErr          error
+	InboxTasks      []domain.Task
+	InboxTasksErr   error
+	AllTasks        []domain.Task
+	AllTasksErr     error
+	ProjectTasks    []domain.Task
+	ProjectTasksErr error
+	TagTasks        []domain.Task
+	TagTasksErr     error
+	FlaggedTasks    []domain.Task
+	FlaggedTasksErr error
+	Task            *domain.Task
+	TaskErr         error
 
 	// Projects
 	Projects            []domain.Project

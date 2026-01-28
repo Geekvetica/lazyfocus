@@ -10,13 +10,6 @@ import (
 // Compile-time check that MockOmniFocusService implements OmniFocusService
 var _ OmniFocusService = (*MockOmniFocusService)(nil)
 
-func TestMockOmniFocusService_ImplementsInterface(t *testing.T) {
-	var service OmniFocusService = &MockOmniFocusService{}
-	if service == nil {
-		t.Fatal("MockOmniFocusService should implement OmniFocusService interface")
-	}
-}
-
 func TestMockOmniFocusService_GetInboxTasks_ReturnsConfiguredValues(t *testing.T) {
 	expectedTasks := []domain.Task{
 		{ID: "task1", Name: "Test Task"},

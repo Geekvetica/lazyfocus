@@ -62,12 +62,8 @@ func TestCommandHelpConsistency(t *testing.T) {
 				t.Errorf("command %q missing long description", tc.name)
 			}
 
-			// Verify all commands support --json flag (inherited from root)
-			if tc.cmd.Flag("json") == nil {
-				// Check if it's a persistent flag from parent
-				// This will be inherited at runtime, so we can't fully test here
-				// Just verify the command structure allows it
-			}
+			// Note: --json flag is inherited from root at runtime, so we can't verify it here
+			// The flag is set as a persistent flag on the root command
 		})
 	}
 }
