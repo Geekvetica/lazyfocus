@@ -77,7 +77,7 @@ func TestContextWithService_ShouldCreateContextWithService(t *testing.T) {
 
 func TestServiceFromContext_WithNilContext(t *testing.T) {
 	// Act
-	result, err := ServiceFromContext(nil)
+	result, err := ServiceFromContext(nil) //nolint:staticcheck // intentionally testing nil context handling
 
 	// Assert
 	if !errors.Is(err, ErrServiceNotFound) {
@@ -93,7 +93,7 @@ func TestContextWithService_WithNilContext(t *testing.T) {
 	mockService := &service.MockOmniFocusService{}
 
 	// Act
-	newCtx := ContextWithService(nil, mockService)
+	newCtx := ContextWithService(nil, mockService) //nolint:staticcheck // intentionally testing nil context handling
 
 	// Assert
 	retrievedService, err := ServiceFromContext(newCtx)
