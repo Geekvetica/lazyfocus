@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Compositor handles the positioning and compositing of overlay content.
@@ -87,12 +88,8 @@ func (c *Compositor) applyDim(content string) string {
 }
 
 // simpleLayerContent places overlay content on top of base content.
-// This preserves ANSI codes in the base by not re-processing it through Place.
+// Uses character-level compositing to preserve base content on the sides of the overlay.
 func (c *Compositor) simpleLayerContent(base, overlay string) string {
-	// We need to preserve ANSI codes in base content
-	// The overlay is already centered and sized to viewport by Place()
-	// We just need to ensure base content appears behind overlay content
-
 	// Split into lines for compositing
 	baseLines := strings.Split(base, "\n")
 	overlayLines := strings.Split(overlay, "\n")
@@ -110,24 +107,81 @@ func (c *Compositor) simpleLayerContent(base, overlay string) string {
 	result := make([]string, c.height)
 
 	for i := 0; i < c.height; i++ {
-		// Get lines (guaranteed to exist now)
 		baseLine := baseLines[i]
 		overlayLine := overlayLines[i]
 
-		// If overlay line is all spaces (empty after trim), keep base line
+		// If overlay line is all spaces, keep base line
 		trimmedOverlay := strings.TrimSpace(overlayLine)
 		if trimmedOverlay == "" {
-			// Ensure base line is padded to viewport width
-			baseLine = padToWidth(baseLine, c.width)
-			result[i] = baseLine
+			result[i] = padToWidth(baseLine, c.width)
 		} else {
-			// Overlay has content, use the overlay line as-is
-			// (it's already sized and positioned by Place)
-			result[i] = overlayLine
+			// Character-level compositing: base + overlay + base
+			result[i] = c.compositeLineCharLevel(baseLine, overlayLine)
 		}
 	}
 
 	return strings.Join(result, "\n")
+}
+
+// compositeLineCharLevel composites a single line with character-level precision.
+// It preserves base content on the left and right of the overlay content.
+func (c *Compositor) compositeLineCharLevel(baseLine, overlayLine string) string {
+	// Find the bounds of actual content in the overlay line (non-space characters)
+	left, right := findContentBounds(overlayLine)
+
+	if left == -1 {
+		// No content in overlay, return base
+		return padToWidth(baseLine, c.width)
+	}
+
+	// Ensure base line is wide enough
+	baseLine = padToWidth(baseLine, c.width)
+
+	// Build the composite line:
+	// 1. Left part from base (columns 0 to left-1)
+	// 2. Middle part from overlay (columns left to right inclusive)
+	// 3. Right part from base (columns right+1 to end)
+
+	var result strings.Builder
+
+	// Left part from base (0 to left-1)
+	if left > 0 {
+		leftPart := ansi.Truncate(baseLine, left, "")
+		result.WriteString(leftPart)
+	}
+
+	// Middle part from overlay using ansi.Cut (left to right inclusive)
+	overlayMiddle := ansi.Cut(overlayLine, left, right+1)
+	result.WriteString(overlayMiddle)
+
+	// Right part from base (right+1 to end)
+	if right < c.width-1 {
+		rightPart := ansi.TruncateLeft(baseLine, right+1, "")
+		result.WriteString(rightPart)
+	}
+
+	return result.String()
+}
+
+// findContentBounds finds the leftmost and rightmost non-space character positions.
+// Returns (-1, -1) if the line has no non-space content.
+func findContentBounds(line string) (left, right int) {
+	// We need to work with display positions, ignoring ANSI codes
+	stripped := ansi.Strip(line)
+
+	left = -1
+	right = -1
+
+	for i, r := range stripped {
+		if r != ' ' {
+			if left == -1 {
+				left = i
+			}
+			right = i
+		}
+	}
+
+	return left, right
 }
 
 // padToWidth pads a string to the specified width with spaces.

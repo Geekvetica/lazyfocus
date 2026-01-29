@@ -288,3 +288,161 @@ func TestPadToWidth(t *testing.T) {
 		})
 	}
 }
+
+// TestFindContentBounds verifies finding content boundaries in lines
+func TestFindContentBounds(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		wantLeft  int
+		wantRight int
+	}{
+		{
+			name:      "content at start",
+			input:     "Hello     ",
+			wantLeft:  0,
+			wantRight: 4,
+		},
+		{
+			name:      "content at end",
+			input:     "     World",
+			wantLeft:  5,
+			wantRight: 9,
+		},
+		{
+			name:      "content in middle",
+			input:     "   XYZ   ",
+			wantLeft:  3,
+			wantRight: 5,
+		},
+		{
+			name:      "all spaces",
+			input:     "          ",
+			wantLeft:  -1,
+			wantRight: -1,
+		},
+		{
+			name:      "empty string",
+			input:     "",
+			wantLeft:  -1,
+			wantRight: -1,
+		},
+		{
+			name:      "single char",
+			input:     "  X  ",
+			wantLeft:  2,
+			wantRight: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			left, right := findContentBounds(tt.input)
+			if left != tt.wantLeft {
+				t.Errorf("left: expected %d, got %d", tt.wantLeft, left)
+			}
+			if right != tt.wantRight {
+				t.Errorf("right: expected %d, got %d", tt.wantRight, right)
+			}
+		})
+	}
+}
+
+// TestCompositeLineCharLevel verifies character-level compositing
+func TestCompositeLineCharLevel(t *testing.T) {
+	c := New()
+	c.SetSize(20, 1)
+
+	// Base: "│ABCDEFGHIJKLMNOP│  " (border chars at positions 0 and 17)
+	// Overlay: "     [OVERLAY]     " (content from 5 to 13)
+	// Expected: "│ABCD[OVERLAY]OP│  " (base on sides, overlay in middle)
+
+	baseLine := "|ABCDEFGHIJKLMNOP|  "
+	overlayLine := "     [OVERLAY]      "
+
+	result := c.compositeLineCharLevel(baseLine, overlayLine)
+
+	// Should have base content on left
+	if !strings.HasPrefix(result, "|ABCD") {
+		t.Errorf("expected base content on left, got: %q", result)
+	}
+
+	// Should have overlay content in middle
+	if !strings.Contains(result, "[OVERLAY]") {
+		t.Errorf("expected overlay content in middle, got: %q", result)
+	}
+
+	// Should have base content on right
+	if !strings.Contains(result, "OP|") {
+		t.Errorf("expected base content on right, got: %q", result)
+	}
+}
+
+// TestComposePreservesBaseBorders verifies that borders are preserved during compositing
+func TestComposePreservesBaseBorders(t *testing.T) {
+	c := New()
+	c.SetSize(40, 10)
+
+	// Create base with borders
+	base := strings.Repeat("│content here content│\n", 10)
+
+	// Create small centered overlay
+	overlay := "MODAL"
+
+	result := c.Compose(base, overlay, true)
+
+	// The lines without overlay should have borders preserved
+	lines := strings.Split(result, "\n")
+	foundBorderLine := false
+	for _, line := range lines {
+		// Skip overlay lines
+		if strings.Contains(line, "MODAL") {
+			continue
+		}
+		// Non-overlay lines should have border character
+		if strings.Contains(line, "│") {
+			foundBorderLine = true
+			break
+		}
+	}
+
+	if !foundBorderLine {
+		t.Error("expected border characters to be preserved in non-overlay lines")
+	}
+}
+
+// TestCompositeLineCharLevelWithEmptyOverlay verifies handling of empty overlay
+func TestCompositeLineCharLevelWithEmptyOverlay(t *testing.T) {
+	c := New()
+	c.SetSize(20, 1)
+
+	baseLine := "base content here"
+	overlayLine := "                    " // all spaces
+
+	result := c.compositeLineCharLevel(baseLine, overlayLine)
+
+	// Should return padded base line since overlay is empty
+	if !strings.Contains(result, "base content here") {
+		t.Errorf("expected base content for empty overlay, got: %q", result)
+	}
+}
+
+// TestCompositeLineCharLevelOverlayAtEdges verifies overlay at viewport edges
+func TestCompositeLineCharLevelOverlayAtEdges(t *testing.T) {
+	c := New()
+	c.SetSize(20, 1)
+
+	// Overlay content at the start
+	baseLine := "BBBBBBBBBBBBBBBBBBBB"
+	overlayLine := "OOOO                "
+
+	result := c.compositeLineCharLevel(baseLine, overlayLine)
+
+	// Should have overlay at start and base at end
+	if !strings.HasPrefix(result, "OOOO") {
+		t.Errorf("expected overlay at start, got: %q", result)
+	}
+	if !strings.HasSuffix(result, "BBBBBBBBBBBBBBBB") {
+		t.Errorf("expected base at end, got: %q", result)
+	}
+}
