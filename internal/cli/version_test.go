@@ -55,3 +55,15 @@ func TestVersionCommandNoArgs(t *testing.T) {
 		t.Error("expected error when providing arguments to version command")
 	}
 }
+
+func TestVersionCommand_HasSkipServiceSetupAnnotation(t *testing.T) {
+	cmd := NewVersionCommand()
+
+	if cmd.Annotations == nil {
+		t.Fatal("expected Annotations to be set, got nil")
+	}
+
+	if cmd.Annotations["skipServiceSetup"] != "true" {
+		t.Errorf("expected skipServiceSetup annotation to be 'true', got %q", cmd.Annotations["skipServiceSetup"])
+	}
+}

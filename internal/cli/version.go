@@ -20,7 +20,10 @@ func NewVersionCommand() *cobra.Command {
 		Short: "Print version information",
 		Long:  `Print version information for lazyfocus.`,
 		Args:  cobra.NoArgs,
-		Run:   runVersion,
+		Annotations: map[string]string{
+			"skipServiceSetup": "true",
+		},
+		Run: runVersion,
 	}
 
 	return cmd

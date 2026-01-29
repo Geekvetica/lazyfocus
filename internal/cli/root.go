@@ -28,8 +28,9 @@ scripting and AI agent integration.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// Skip service setup for commands that don't need it (like version, help)
-			if cmd.Name() == "version" || cmd.Name() == "help" {
+			// Skip service setup for commands that have skipServiceSetup annotation
+			// or for the built-in help command (which cannot be annotated)
+			if cmd.Annotations["skipServiceSetup"] == "true" || cmd.Name() == "help" {
 				return nil
 			}
 

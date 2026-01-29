@@ -101,7 +101,11 @@ func runTasks(cmd *cobra.Command, args []string) error {
 // getServiceFromCmd retrieves the service from the command context.
 // Returns an error if the service is not found in context.
 func getServiceFromCmd(cmd *cobra.Command) (service.OmniFocusService, error) {
-	return ServiceFromContext(cmd.Context())
+	svc, err := ServiceFromContext(cmd.Context())
+	if err != nil {
+		return nil, fmt.Errorf("getting service from command context: %w", err)
+	}
+	return svc, nil
 }
 
 // getFormatter returns the appropriate formatter based on the --json flag

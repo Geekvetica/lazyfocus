@@ -157,18 +157,44 @@ func TestGetTimeoutFlag(t *testing.T) {
 func TestRootCommand_PersistentPreRunE_SkipsForVersionCommand(t *testing.T) {
 	rootCmd := NewRootCommand()
 
-	// Create a version subcommand
-	versionCmd := &cobra.Command{
-		Use:   "version",
-		Short: "Print version",
+	// Add the actual version command (which should have skipServiceSetup annotation)
+	rootCmd.AddCommand(NewVersionCommand())
+
+	// Execute the version command - PersistentPreRunE should skip service setup
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+	rootCmd.SetArgs([]string{"version"})
+	err := rootCmd.Execute()
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+}
+
+func TestRootCommand_PersistentPreRunE_SkipsForCommandsWithAnnotation(t *testing.T) {
+	rootCmd := NewRootCommand()
+
+	// Create a test command with skipServiceSetup annotation
+	testCmd := &cobra.Command{
+		Use:   "testskip",
+		Short: "Test skip command",
+		Annotations: map[string]string{
+			"skipServiceSetup": "true",
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Verify service was NOT set in context
+			_, err := ServiceFromContext(cmd.Context())
+			if err == nil {
+				t.Error("Expected service to NOT be in context for commands with skipServiceSetup annotation")
+			}
 			return nil
 		},
 	}
-	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(testCmd)
 
-	// Execute the version command - PersistentPreRunE should skip service setup
-	rootCmd.SetArgs([]string{"version"})
+	// Execute the test command - should skip service setup
+	rootCmd.SetArgs([]string{"testskip"})
 	err := rootCmd.Execute()
 
 	if err != nil {
