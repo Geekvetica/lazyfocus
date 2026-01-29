@@ -24,11 +24,12 @@ type TaskStyles struct {
 
 // UIStyles defines styles for UI elements
 type UIStyles struct {
-	Header  lipgloss.Style
-	Footer  lipgloss.Style
-	Help    lipgloss.Style
-	Overlay lipgloss.Style
-	Input   lipgloss.Style
+	Header          lipgloss.Style
+	Footer          lipgloss.Style
+	Help            lipgloss.Style
+	Overlay         lipgloss.Style
+	OverlayBackdrop lipgloss.Style
+	Input           lipgloss.Style
 }
 
 // DueDateStyles defines styles for due date display
@@ -122,6 +123,8 @@ func DefaultStyles() *Styles {
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(colors.Primary).
 			Padding(1, 2),
+		OverlayBackdrop: lipgloss.NewStyle().
+			Faint(true),
 		Input: lipgloss.NewStyle().
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(colors.Primary).

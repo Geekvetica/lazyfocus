@@ -124,14 +124,11 @@ func (m Model) View() string {
 	help := helpStyle.Render("Enter: add • Escape: cancel")
 	content += help
 
-	// Wrap in overlay style
-	overlay := m.styles.UI.Overlay.
+	// Wrap in overlay style and return (parent will handle centering)
+	return m.styles.UI.Overlay.
 		Width(modalWidth).
 		Height(modalHeight).
 		Render(content)
-
-	// Center the modal
-	return m.centerModal(overlay)
 }
 
 // Show makes the component visible and focuses the input
@@ -202,26 +199,4 @@ func (m Model) submitTask() (Model, tea.Cmd) {
 	return m, func() tea.Msg {
 		return tui.TaskCreatedMsg{Task: *task}
 	}
-}
-
-// centerModal centers the modal content on the screen
-func (m Model) centerModal(content string) string {
-	// Calculate vertical padding
-	lines := lipgloss.Height(content)
-	verticalPad := (m.height - lines) / 2
-	if verticalPad < 0 {
-		verticalPad = 0
-	}
-
-	// Calculate horizontal padding
-	contentWidth := lipgloss.Width(content)
-	horizontalPad := (m.width - contentWidth) / 2
-	if horizontalPad < 0 {
-		horizontalPad = 0
-	}
-
-	// Apply padding
-	return lipgloss.NewStyle().
-		Padding(verticalPad, 0, 0, horizontalPad).
-		Render(content)
 }
