@@ -50,6 +50,14 @@ type TagCountsResponse struct {
 	Error  string         `json:"error,omitempty"`
 }
 
+// OperationResultResponse represents the response from write operations
+type OperationResultResponse struct {
+	Success bool   `json:"success"`
+	ID      string `json:"id"`
+	Message string `json:"message"`
+	Error   string `json:"error,omitempty"`
+}
+
 // checkResponseError checks if a response contains an error field
 // Returns ErrOmniFocusNotRunning if the error is "OmniFocus is not running"
 // Returns error for any other error message
@@ -214,4 +222,30 @@ func ParseTagCounts(jsonStr string) (map[string]int, error) {
 	}
 
 	return response.Counts, nil
+}
+
+// ParseOperationResult parses JSON output into an OperationResult
+// Returns ErrOmniFocusNotRunning if the JSON contains an error about OmniFocus not running
+// Returns parsing error for malformed JSON or operation failure
+func ParseOperationResult(jsonStr string) (*domain.OperationResult, error) {
+	var response OperationResultResponse
+
+	err := json.Unmarshal([]byte(jsonStr), &response)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse operation result JSON: %w", err)
+	}
+
+	// Check if response contains an error
+	if err := checkResponseError(response.Error); err != nil {
+		return nil, err
+	}
+
+	// Create domain OperationResult
+	result := &domain.OperationResult{
+		Success: response.Success,
+		ID:      response.ID,
+		Message: response.Message,
+	}
+
+	return result, nil
 }

@@ -34,6 +34,18 @@ type Formatter interface {
 
 	// FormatError formats an error message
 	FormatError(err error) string
+
+	// FormatCreatedTask formats a newly created task
+	FormatCreatedTask(task domain.Task) string
+
+	// FormatModifiedTask formats a modified task
+	FormatModifiedTask(task domain.Task) string
+
+	// FormatCompletedTask formats a completed task operation result
+	FormatCompletedTask(result domain.OperationResult) string
+
+	// FormatDeletedTask formats a deleted task operation result
+	FormatDeletedTask(result domain.OperationResult) string
 }
 
 // TaskFormatOptions contains options for formatting tasks

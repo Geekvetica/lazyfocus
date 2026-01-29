@@ -400,6 +400,187 @@ func TestFormatDate(t *testing.T) {
 	}
 }
 
+func TestHumanFormatter_FormatCreatedTask(t *testing.T) {
+	formatter := NewHumanFormatter()
+	now := time.Now()
+	tomorrow := time.Date(now.Year(), now.Month(), now.Day()+1, 17, 0, 0, 0, now.Location())
+
+	tests := []struct {
+		name string
+		task domain.Task
+		want []string
+	}{
+		{
+			name: "minimal created task",
+			task: domain.Task{ID: "abc123", Name: "Buy groceries"},
+			want: []string{"✓", "Created task:", "abc123", "Buy groceries"},
+		},
+		{
+			name: "created task with due date",
+			task: domain.Task{
+				ID:      "abc123",
+				Name:    "Buy groceries",
+				DueDate: &tomorrow,
+			},
+			want: []string{"✓", "Created task:", "abc123", "Buy groceries", "Due:", "Tomorrow"},
+		},
+		{
+			name: "created task with tags",
+			task: domain.Task{
+				ID:   "abc123",
+				Name: "Buy groceries",
+				Tags: []string{"shopping", "errands"},
+			},
+			want: []string{"✓", "Created task:", "abc123", "Buy groceries", "Tags:", "#shopping", "#errands"},
+		},
+		{
+			name: "created task with project",
+			task: domain.Task{
+				ID:          "abc123",
+				Name:        "Buy groceries",
+				ProjectName: "Home",
+			},
+			want: []string{"✓", "Created task:", "abc123", "Buy groceries", "Project:", "Home"},
+		},
+		{
+			name: "created task with all fields",
+			task: domain.Task{
+				ID:          "abc123",
+				Name:        "Buy groceries",
+				DueDate:     &tomorrow,
+				Tags:        []string{"shopping", "errands"},
+				ProjectName: "Home",
+			},
+			want: []string{"✓", "Created task:", "abc123", "Buy groceries", "Due:", "Tomorrow", "Tags:", "#shopping", "#errands", "Project:", "Home"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatter.FormatCreatedTask(tt.task)
+
+			for _, want := range tt.want {
+				if !strings.Contains(result, want) {
+					t.Errorf("FormatCreatedTask() output missing %q\nGot: %s", want, result)
+				}
+			}
+		})
+	}
+}
+
+func TestHumanFormatter_FormatModifiedTask(t *testing.T) {
+	formatter := NewHumanFormatter()
+	now := time.Now()
+	friday := time.Date(now.Year(), now.Month(), now.Day()+5, 17, 0, 0, 0, now.Location())
+
+	tests := []struct {
+		name string
+		task domain.Task
+		want []string
+	}{
+		{
+			name: "minimal modified task",
+			task: domain.Task{ID: "abc123", Name: "Buy groceries"},
+			want: []string{"✓", "Modified task:", "abc123", "Buy groceries"},
+		},
+		{
+			name: "modified task with due date",
+			task: domain.Task{
+				ID:      "abc123",
+				Name:    "Buy groceries",
+				DueDate: &friday,
+			},
+			want: []string{"✓", "Modified task:", "abc123", "Buy groceries", "Due:"},
+		},
+		{
+			name: "modified flagged task",
+			task: domain.Task{
+				ID:      "abc123",
+				Name:    "Buy groceries",
+				Flagged: true,
+			},
+			want: []string{"✓", "Modified task:", "abc123", "Buy groceries", "Flagged:", "Yes"},
+		},
+		{
+			name: "modified task not flagged",
+			task: domain.Task{
+				ID:      "abc123",
+				Name:    "Buy groceries",
+				Flagged: false,
+			},
+			want: []string{"✓", "Modified task:", "abc123", "Buy groceries"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatter.FormatModifiedTask(tt.task)
+
+			for _, want := range tt.want {
+				if !strings.Contains(result, want) {
+					t.Errorf("FormatModifiedTask() output missing %q\nGot: %s", want, result)
+				}
+			}
+		})
+	}
+}
+
+func TestHumanFormatter_FormatCompletedTask(t *testing.T) {
+	formatter := NewHumanFormatter()
+
+	tests := []struct {
+		name   string
+		result domain.OperationResult
+		want   []string
+	}{
+		{
+			name:   "successful completion",
+			result: domain.NewSuccessResult("abc123", "Task completed"),
+			want:   []string{"✓", "Completed:", "abc123", "Task marked as complete"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := formatter.FormatCompletedTask(tt.result)
+
+			for _, want := range tt.want {
+				if !strings.Contains(output, want) {
+					t.Errorf("FormatCompletedTask() output missing %q\nGot: %s", want, output)
+				}
+			}
+		})
+	}
+}
+
+func TestHumanFormatter_FormatDeletedTask(t *testing.T) {
+	formatter := NewHumanFormatter()
+
+	tests := []struct {
+		name   string
+		result domain.OperationResult
+		want   []string
+	}{
+		{
+			name:   "successful deletion",
+			result: domain.NewSuccessResult("abc123", "Task deleted"),
+			want:   []string{"✓", "Deleted:", "abc123", "Task moved to trash"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := formatter.FormatDeletedTask(tt.result)
+
+			for _, want := range tt.want {
+				if !strings.Contains(output, want) {
+					t.Errorf("FormatDeletedTask() output missing %q\nGot: %s", want, output)
+				}
+			}
+		})
+	}
+}
+
 // testError is a simple error implementation for testing
 type testError struct {
 	msg string

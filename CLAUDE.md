@@ -117,6 +117,16 @@ When implementing features, use the appropriate subagents:
   - Invalid task/project IDs
   - Automation permission issues
 
+**Common error scenarios:**
+- **Empty task name:** "task name is required"
+- **Task not found:** "task not found" (when using invalid task ID)
+- **Project not found:** "failed to resolve project: project not found"
+- **Invalid date format:** "invalid due date: unrecognized date format: xyz"
+- **No modifications:** "no modifications specified" (modify command without flags)
+- **Missing confirmation:** "confirmation required: use --force to delete" (delete without --force)
+
+In JSON mode, errors return `{"error": "message"}` with appropriate exit codes.
+
 ### Testing
 - Follow TDD: Red → Green → Refactor
 - Use table-driven tests for multiple cases
@@ -152,6 +162,134 @@ cmd := exec.Command("osascript", "-l", "JavaScript", "-e", script)
 - Include error information in JSON when errors occur
 - Use consistent date formats (ISO 8601)
 
+## CLI Command Reference
+
+### Read Commands
+
+- `tasks` - List tasks with filtering support
+- `projects` - List all projects
+- `tags` - List all tags
+- `show` - Show task details
+- `perspective` - View custom perspectives
+
+### Write Commands
+
+#### `add` - Create a new task
+
+**Natural Syntax:**
+```bash
+lazyfocus add "Buy milk #groceries due:tomorrow"
+lazyfocus add "Review PR @Work due:friday !"
+lazyfocus add "Meeting prep @\"Big Project\" defer:\"next monday\""
+```
+
+**Flags:**
+```bash
+lazyfocus add "Task name" --project Work --tag urgent --due tomorrow --flagged
+lazyfocus add "Quick task" -p Work -t urgent -t followup -d friday -f
+lazyfocus add "With note" --note "Additional details here"
+```
+
+**Available flags:**
+- `-p, --project <name>` - Project name or ID
+- `-t, --tag <name>` - Tags (repeatable)
+- `-d, --due <date>` - Due date
+- `--defer <date>` - Defer date
+- `-f, --flagged` - Mark as flagged
+- `-n, --note <text>` - Task note
+
+Command-line flags override natural syntax when both are present.
+
+#### `complete` - Mark tasks as complete
+
+```bash
+lazyfocus complete abc123
+lazyfocus complete task1 task2 task3
+lazyfocus complete abc123 --json
+```
+
+Accepts multiple task IDs. Continues processing even if some tasks fail.
+
+#### `delete` - Delete tasks
+
+```bash
+lazyfocus delete abc123 --force
+lazyfocus delete task1 task2 task3 --force
+lazyfocus delete abc123 --json
+```
+
+**Flags:**
+- `-f, --force` - Skip confirmation prompt
+
+In JSON mode, confirmation is automatically skipped. Multiple task IDs supported.
+
+#### `modify` - Modify existing task
+
+```bash
+lazyfocus modify task123 --name "Updated name"
+lazyfocus modify task123 --due tomorrow --flagged true
+lazyfocus modify task123 --add-tag urgent --remove-tag low
+lazyfocus modify task123 --clear-due --clear-defer
+lazyfocus modify task123 --project Work --note "New note"
+```
+
+**Available flags:**
+- `--name <text>` - New task name
+- `--note <text>` - New note
+- `--project <name>` - Move to project (name or ID)
+- `--add-tag <name>` - Add tag (repeatable)
+- `--remove-tag <name>` - Remove tag (repeatable)
+- `--due <date>` - Set due date
+- `--defer <date>` - Set defer date
+- `--flagged <true|false>` - Set flagged status
+- `--clear-due` - Clear due date
+- `--clear-defer` - Clear defer date
+
+Requires at least one modification flag.
+
+### Natural Syntax Guide
+
+The `add` command supports natural language task input:
+
+**Tags:** `#tagname` or `#"tag with spaces"`
+```bash
+lazyfocus add "Buy groceries #errands #shopping"
+lazyfocus add "Team sync #\"project alpha\""
+```
+
+**Projects:** `@projectname` or `@"project with spaces"`
+```bash
+lazyfocus add "Review code @Work"
+lazyfocus add "Planning meeting @\"Big Project\""
+```
+
+**Due dates:** `due:date` or `due:"date phrase"`
+```bash
+lazyfocus add "Submit report due:friday"
+lazyfocus add "Call client due:\"next monday\""
+```
+
+**Defer dates:** `defer:date` or `defer:"date phrase"`
+```bash
+lazyfocus add "Review proposal defer:tomorrow"
+lazyfocus add "Follow up defer:\"in 3 days\""
+```
+
+**Flagged:** `!` anywhere in input
+```bash
+lazyfocus add "Urgent task !"
+lazyfocus add "! High priority item"
+```
+
+**Supported date formats:**
+- Relative: `today`, `tomorrow`, `yesterday`
+- Next occurrence: `next monday`, `next week`
+- In N units: `in 3 days`, `in 2 weeks`
+- ISO format: `2024-01-15`
+- Month/day: `Jan 15`, `January 15 2024`
+
+All dates without explicit times default to 5:00 PM local time.
+
 ## CLI Output Standards
 
 ### Human Output
@@ -165,6 +303,8 @@ INBOX (3 tasks)
 ```
 
 ### JSON Output
+
+**List tasks:**
 ```json
 {
   "tasks": [...],
@@ -172,10 +312,41 @@ INBOX (3 tasks)
 }
 ```
 
-### Error Output (JSON mode)
+**Created task:**
 ```json
 {
-  "error": "OmniFocus is not running"
+  "id": "abc123",
+  "name": "Buy milk",
+  "tags": ["groceries"],
+  "due": "2024-01-16T17:00:00Z",
+  "flagged": false
+}
+```
+
+**Modified task:**
+```json
+{
+  "id": "abc123",
+  "name": "Updated task name",
+  "project": "Work",
+  "tags": ["urgent"],
+  "due": "2024-01-20T17:00:00Z"
+}
+```
+
+**Completed/deleted task:**
+```json
+{
+  "id": "abc123",
+  "name": "Task name",
+  "completed": true
+}
+```
+
+**Error response:**
+```json
+{
+  "error": "task not found"
 }
 ```
 
