@@ -1,8 +1,14 @@
 package cli
 
 import (
+	"bytes"
+	"context"
 	"testing"
 	"time"
+
+	"github.com/pwojciechowski/lazyfocus/internal/cli/service"
+	"github.com/pwojciechowski/lazyfocus/internal/domain"
+	"github.com/spf13/cobra"
 )
 
 func TestRootCommand_Flags(t *testing.T) {
@@ -145,5 +151,126 @@ func TestGetTimeoutFlag(t *testing.T) {
 	timeout = GetTimeoutFlag()
 	if timeout != 60*time.Second {
 		t.Errorf("GetTimeoutFlag() = %v, want 1m after setting flag", timeout)
+	}
+}
+
+func TestRootCommand_PersistentPreRunE_SkipsForVersionCommand(t *testing.T) {
+	rootCmd := NewRootCommand()
+
+	// Create a version subcommand
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print version",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+	}
+	rootCmd.AddCommand(versionCmd)
+
+	// Execute the version command - PersistentPreRunE should skip service setup
+	rootCmd.SetArgs([]string{"version"})
+	err := rootCmd.Execute()
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+}
+
+func TestRootCommand_PersistentPreRunE_SkipsForHelpCommand(t *testing.T) {
+	rootCmd := NewRootCommand()
+
+	// Create a help subcommand (simulating the built-in help)
+	helpCmd := &cobra.Command{
+		Use:   "help",
+		Short: "Help about any command",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+	}
+	rootCmd.AddCommand(helpCmd)
+
+	// Execute the help command - PersistentPreRunE should skip service setup
+	rootCmd.SetArgs([]string{"help"})
+	err := rootCmd.Execute()
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+}
+
+func TestRootCommand_PersistentPreRunE_HandlesNilContext(t *testing.T) {
+	rootCmd := NewRootCommand()
+
+	// Create a test subcommand that will trigger PersistentPreRunE
+	// but we won't provide a context (Execute without ExecuteContext)
+	testCmd := &cobra.Command{
+		Use:   "testcmd",
+		Short: "Test command",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Verify that context was set (should be Background context)
+			ctx := cmd.Context()
+			if ctx == nil {
+				t.Error("Expected context to be set, got nil")
+			}
+			return nil
+		},
+	}
+	rootCmd.AddCommand(testCmd)
+
+	// Execute without providing context - PersistentPreRunE should use Background context
+	// Note: This will attempt to create a real executor, but that's OK for this test
+	// since we're just testing that nil context doesn't cause a panic
+	rootCmd.SetArgs([]string{"testcmd"})
+
+	// We expect this may fail due to OmniFocus not being available, but it should
+	// NOT panic due to nil context
+	_ = rootCmd.Execute()
+}
+
+func TestRootCommand_PersistentPreRunE_UsesExistingServiceFromContext(t *testing.T) {
+	rootCmd := NewRootCommand()
+
+	// Create a mock service
+	mockService := &service.MockOmniFocusService{
+		InboxTasks: []domain.Task{
+			{ID: "task1", Name: "Test task"},
+		},
+	}
+
+	// Add tasks command for testing
+	rootCmd.AddCommand(NewTasksCommand())
+
+	// Track if service was replaced
+	var serviceFromCommand service.OmniFocusService
+
+	// Create a wrapper command to capture the service after PersistentPreRunE
+	tasksCmd, _, _ := rootCmd.Find([]string{"tasks"})
+	originalRunE := tasksCmd.RunE
+	tasksCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		var err error
+		serviceFromCommand, err = ServiceFromContext(cmd.Context())
+		if err != nil {
+			return err
+		}
+		return originalRunE(cmd, args)
+	}
+
+	// Set output buffer
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+
+	// Execute with context that already has a service
+	ctx := ContextWithService(context.Background(), mockService)
+	rootCmd.SetArgs([]string{"tasks"})
+	err := rootCmd.ExecuteContext(ctx)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Verify that the original mock service was used (not replaced)
+	if serviceFromCommand != mockService {
+		t.Error("Expected PersistentPreRunE to use existing service from context, but it was replaced")
 	}
 }

@@ -387,6 +387,26 @@ func TestShowCommand_QuietMode_NotFound(t *testing.T) {
 	}
 }
 
+func TestOutputItem_UnsupportedType(t *testing.T) {
+	rootCmd := NewRootCommand()
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+
+	// Get a formatter (doesn't matter which one for this test)
+	formatter := getFormatter()
+
+	// Call outputItem with an unsupported type (string)
+	err := outputItem(rootCmd, formatter, "unsupported string type")
+
+	if err == nil {
+		t.Fatal("Expected error for unsupported type, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "unsupported item type") {
+		t.Errorf("Expected error message about unsupported item type, got: %v", err)
+	}
+}
+
 // Helper function to execute show command and capture output
 func executeShowCommand(mockService service.OmniFocusService, args []string) (string, int, error) {
 	// Create a new root command for each test to avoid flag pollution

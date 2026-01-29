@@ -387,3 +387,31 @@ func executeTasksCommand(mockService service.OmniFocusService, args []string) (s
 func newTestRootCommand() *cobra.Command {
 	return NewRootCommand()
 }
+
+func TestTasksCommand_ErrorWhenServiceNotInContext(t *testing.T) {
+	// Create root command and add tasks command
+	rootCmd := NewRootCommand()
+	rootCmd.AddCommand(NewTasksCommand())
+
+	// Disable PersistentPreRunE to prevent automatic service creation
+	rootCmd.PersistentPreRunE = nil
+
+	// Capture output
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+
+	// Execute tasks command with empty context (no service injected)
+	ctx := context.Background()
+	rootCmd.SetArgs([]string{"tasks"})
+	err := rootCmd.ExecuteContext(ctx)
+
+	// Should return ErrServiceNotFound
+	if err == nil {
+		t.Fatal("Expected error when service not in context, got nil")
+	}
+
+	if !errors.Is(err, ErrServiceNotFound) {
+		t.Errorf("Expected ErrServiceNotFound, got: %v", err)
+	}
+}
