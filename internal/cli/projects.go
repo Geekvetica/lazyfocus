@@ -28,12 +28,15 @@ func runProjects(cmd *cobra.Command, args []string) error {
 	withTasksFlag, _ := cmd.Flags().GetBool("with-tasks")
 
 	// Get service
-	svc := getService()
-
-	// Get projects from service
-	projects, err := svc.GetProjects(statusFlag)
+	svc, err := getServiceFromCmd(cmd)
 	if err != nil {
 		return handleError(cmd, err)
+	}
+
+	// Get projects from service
+	projects, getErr := svc.GetProjects(statusFlag)
+	if getErr != nil {
+		return handleError(cmd, getErr)
 	}
 
 	// Format and output results

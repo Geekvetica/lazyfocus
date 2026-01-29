@@ -2,8 +2,11 @@
 package cli
 
 import (
+	"context"
 	"time"
 
+	"github.com/pwojciechowski/lazyfocus/internal/bridge"
+	"github.com/pwojciechowski/lazyfocus/internal/cli/service"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +27,35 @@ It provides both human-readable output for terminal use and JSON output for
 scripting and AI agent integration.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// Skip service setup for commands that have skipServiceSetup annotation
+			// or for the built-in help command (which cannot be annotated)
+			if cmd.Annotations["skipServiceSetup"] == "true" || cmd.Name() == "help" {
+				return nil
+			}
+
+			// Get current context, use background if nil
+			ctx := cmd.Context()
+			if ctx == nil {
+				ctx = context.Background()
+			}
+
+			// Check if service is already in context (e.g., from tests)
+			if _, err := ServiceFromContext(ctx); err == nil {
+				// Service already exists, skip setup
+				return nil
+			}
+
+			// Create executor and service
+			executor := bridge.NewOSAScriptExecutor()
+			svc := service.NewOmniFocusService(executor, GetTimeoutFlag())
+
+			// Inject service into context
+			ctx = ContextWithService(ctx, svc)
+			cmd.SetContext(ctx)
+
+			return nil
+		},
 	}
 
 	// Global flags

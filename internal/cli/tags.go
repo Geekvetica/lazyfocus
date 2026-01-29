@@ -29,19 +29,22 @@ func runTags(cmd *cobra.Command, args []string) error {
 	withCountsFlag, _ := cmd.Flags().GetBool("with-counts")
 
 	// Get service
-	svc := getService()
-
-	// Get tags from service
-	tags, err := svc.GetTags()
+	svc, err := getServiceFromCmd(cmd)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
+	// Get tags from service
+	tags, getErr := svc.GetTags()
+	if getErr != nil {
+		return handleError(cmd, getErr)
+	}
+
 	// Get tag counts if requested
 	if withCountsFlag {
-		_, err := svc.GetTagCounts()
-		if err != nil {
-			return handleError(cmd, err)
+		_, countErr := svc.GetTagCounts()
+		if countErr != nil {
+			return handleError(cmd, countErr)
 		}
 		// TODO: Pass counts to formatter when implementing count display
 	}

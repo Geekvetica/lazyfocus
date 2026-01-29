@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -83,8 +84,6 @@ func TestJSONOutputConsistency(t *testing.T) {
 		},
 		Task: &domain.Task{ID: "task1", Name: "Test Task"},
 	}
-	Service = mockService
-	defer func() { Service = nil }()
 
 	tests := []struct {
 		name         string
@@ -133,7 +132,9 @@ func TestJSONOutputConsistency(t *testing.T) {
 			args := append([]string{tt.cmd}, tt.args...)
 			rootCmd.SetArgs(args)
 
-			err := rootCmd.Execute()
+			// Create context with mock service
+			ctx := ContextWithService(context.Background(), mockService)
+			err := rootCmd.ExecuteContext(ctx)
 			if err != nil {
 				t.Fatalf("command execution failed: %v", err)
 			}
@@ -178,8 +179,7 @@ func TestErrorOutputConsistency(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Service = tt.setupMock()
-			defer func() { Service = nil }()
+			mockService := tt.setupMock()
 
 			rootCmd := NewRootCommand()
 			rootCmd.AddCommand(NewShowCommand())
@@ -191,7 +191,9 @@ func TestErrorOutputConsistency(t *testing.T) {
 			args := append([]string{tt.cmd}, tt.args...)
 			rootCmd.SetArgs(args)
 
-			err := rootCmd.Execute()
+			// Create context with mock service
+			ctx := ContextWithService(context.Background(), mockService)
+			err := rootCmd.ExecuteContext(ctx)
 
 			if tt.expectError && err == nil {
 				t.Fatal("expected error but got none")
@@ -222,8 +224,6 @@ func TestQuietModeConsistency(t *testing.T) {
 		Tags:       []domain.Tag{{ID: "tag1", Name: "Test"}},
 		Task:       &domain.Task{ID: "task1", Name: "Test"},
 	}
-	Service = mockService
-	defer func() { Service = nil }()
 
 	commands := []struct {
 		name string
@@ -248,7 +248,9 @@ func TestQuietModeConsistency(t *testing.T) {
 			rootCmd.SetErr(buf)
 			rootCmd.SetArgs(tt.args)
 
-			err := rootCmd.Execute()
+			// Create context with mock service
+			ctx := ContextWithService(context.Background(), mockService)
+			err := rootCmd.ExecuteContext(ctx)
 			if err != nil {
 				t.Fatalf("command execution failed: %v", err)
 			}
@@ -293,7 +295,7 @@ func TestGlobalFlagsInheritance(t *testing.T) {
 
 				// We expect help to show, but the flag should be recognized
 				// If the flag is not recognized, we'd get an error before help
-				_ = rootCmd.Execute()
+				_ = rootCmd.ExecuteContext(context.Background())
 			}
 		})
 	}

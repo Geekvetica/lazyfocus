@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -264,10 +265,6 @@ func executePerspectiveCommand(mockService service.OmniFocusService, args []stri
 	// Create a new root command for each test to avoid flag pollution
 	rootCmd := newTestRootCommand()
 
-	// Override the service for testing
-	Service = mockService
-	defer func() { Service = nil }()
-
 	// Add perspective command
 	rootCmd.AddCommand(NewPerspectiveCommand())
 
@@ -280,8 +277,9 @@ func executePerspectiveCommand(mockService service.OmniFocusService, args []stri
 	fullArgs := append([]string{"perspective"}, args...)
 	rootCmd.SetArgs(fullArgs)
 
-	// Execute
-	err := rootCmd.Execute()
+	// Use ExecuteContext with service in context
+	ctx := ContextWithService(context.Background(), mockService)
+	err := rootCmd.ExecuteContext(ctx)
 
 	output := buf.String()
 	exitCode := 0
