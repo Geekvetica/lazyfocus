@@ -10,6 +10,7 @@ import (
 	"github.com/pwojciechowski/lazyfocus/internal/cli/service"
 	"github.com/pwojciechowski/lazyfocus/internal/tui"
 	"github.com/pwojciechowski/lazyfocus/internal/tui/components/quickadd"
+	"github.com/pwojciechowski/lazyfocus/internal/tui/overlay"
 	"github.com/pwojciechowski/lazyfocus/internal/tui/views/inbox"
 )
 
@@ -20,8 +21,9 @@ type Model struct {
 	currentView int // tui.ViewInbox, tui.ViewProjects, etc from messages.go
 
 	// Overlays
-	quickAdd quickadd.Model
-	showHelp bool
+	quickAdd   quickadd.Model
+	showHelp   bool
+	compositor *overlay.Compositor
 
 	// State
 	service service.OmniFocusService
@@ -43,6 +45,7 @@ func NewApp(svc service.OmniFocusService) Model {
 		currentView: tui.ViewInbox,
 		quickAdd:    quickadd.New(styles, svc),
 		showHelp:    false,
+		compositor:  overlay.New(),
 		service:     svc,
 		styles:      styles,
 		keys:        keys,
@@ -69,6 +72,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.ready = true
+
+		// Update compositor dimensions
+		m.compositor.SetSize(msg.Width, msg.Height)
 
 		// Update quick add size
 		m.quickAdd = m.quickAdd.SetSize(msg.Width, msg.Height)
@@ -240,7 +246,7 @@ func (m Model) renderHelp() string {
 		Width(modalWidth).
 		Render(content.String())
 
-	return m.centerOverlay(overlay)
+	return overlay
 }
 
 // formatHelpLine formats a help line with key and description
@@ -257,29 +263,5 @@ func (m Model) formatHelpLine(key, desc string) string {
 
 // layerOverlay layers an overlay on top of the base view
 func (m Model) layerOverlay(base, overlay string) string {
-	// Simply append the overlay after the base for now
-	// In a more sophisticated implementation, we would composite them
-	return base + "\n" + overlay
-}
-
-// centerOverlay centers an overlay on the screen
-func (m Model) centerOverlay(content string) string {
-	// Calculate vertical padding
-	lines := lipgloss.Height(content)
-	verticalPad := (m.height - lines) / 2
-	if verticalPad < 0 {
-		verticalPad = 0
-	}
-
-	// Calculate horizontal padding
-	contentWidth := lipgloss.Width(content)
-	horizontalPad := (m.width - contentWidth) / 2
-	if horizontalPad < 0 {
-		horizontalPad = 0
-	}
-
-	// Apply padding
-	return lipgloss.NewStyle().
-		Padding(verticalPad, 0, 0, horizontalPad).
-		Render(content)
+	return m.compositor.Compose(base, overlay, true)
 }

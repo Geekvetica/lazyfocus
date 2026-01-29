@@ -467,30 +467,36 @@ func TestUpdateNonKeyMessage(t *testing.T) {
 	_ = cmd
 }
 
-// TestCenterModalSmallViewport verifies centerModal handles small viewports (negative padding)
-func TestCenterModalSmallViewport(t *testing.T) {
+// TestViewRendersModalContent verifies View returns styled modal content without centering
+func TestViewRendersModalContent(t *testing.T) {
 	styles := tui.DefaultStyles()
 	mockSvc := &service.MockOmniFocusService{}
 
 	model := New(styles, mockSvc)
 	model = model.Show()
+	model = model.SetSize(80, 40)
 
-	// Set very small viewport that would cause negative padding
-	model = model.SetSize(10, 5)
-
-	// This should not panic and should return a view
 	view := model.View()
 
 	if view == "" {
-		t.Error("Expected non-empty view even with small viewport")
+		t.Error("Expected non-empty view")
 	}
 
-	// Test with zero dimensions
-	model = model.SetSize(0, 0)
+	// View should contain modal content
+	if !strings.Contains(view, "Quick Add Task") {
+		t.Error("Expected view to contain title")
+	}
+
+	// View should not contain centering padding (parent will handle this)
+	// The view should just be the modal box with its styled content
+	// This means it shouldn't have excessive leading whitespace from centering
+
+	// Test with small viewport - should still render content
+	model = model.SetSize(10, 5)
 	view = model.View()
 
 	if view == "" {
-		t.Error("Expected non-empty view even with zero dimensions")
+		t.Error("Expected non-empty view even with small viewport")
 	}
 }
 
