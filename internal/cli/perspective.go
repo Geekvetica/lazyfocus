@@ -23,11 +23,14 @@ Note: Custom perspectives require OmniFocus Pro.`,
 func runPerspective(cmd *cobra.Command, args []string) error {
 	perspectiveName := args[0]
 
-	svc := getService()
-
-	tasks, err := svc.GetPerspectiveTasks(perspectiveName)
+	svc, err := getServiceFromCmd(cmd)
 	if err != nil {
 		return handleError(cmd, err)
+	}
+
+	tasks, getErr := svc.GetPerspectiveTasks(perspectiveName)
+	if getErr != nil {
+		return handleError(cmd, getErr)
 	}
 
 	if GetQuietFlag() {

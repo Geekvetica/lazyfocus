@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pwojciechowski/lazyfocus/internal/bridge"
 	"github.com/pwojciechowski/lazyfocus/internal/cli/output"
 	"github.com/pwojciechowski/lazyfocus/internal/cli/service"
 	"github.com/pwojciechowski/lazyfocus/internal/domain"
 	"github.com/spf13/cobra"
 )
 
-// Service is a package-level variable that can be overridden for testing
-var Service service.OmniFocusService
 
 // NewTasksCommand creates the tasks command
 func NewTasksCommand() *cobra.Command {
@@ -46,11 +43,13 @@ func runTasks(cmd *cobra.Command, args []string) error {
 	completedFlag, _ := cmd.Flags().GetBool("completed")
 
 	// Get service
-	svc := getService()
+	svc, err := getServiceFromCmd(cmd)
+	if err != nil {
+		return handleError(cmd, err)
+	}
 
 	// Determine which service method to call based on flags
 	var tasks []domain.Task
-	var err error
 
 	switch {
 	case flaggedFlag:
@@ -100,13 +99,10 @@ func runTasks(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// getService returns the service instance (either the test mock or a real one)
-func getService() service.OmniFocusService {
-	if Service != nil {
-		return Service
-	}
-	executor := bridge.NewOSAScriptExecutor()
-	return service.NewOmniFocusService(executor, GetTimeoutFlag())
+// getServiceFromCmd retrieves the service from the command context.
+// Returns an error if the service is not found in context.
+func getServiceFromCmd(cmd *cobra.Command) (service.OmniFocusService, error) {
+	return ServiceFromContext(cmd.Context())
 }
 
 // getFormatter returns the appropriate formatter based on the --json flag

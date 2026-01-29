@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -299,10 +300,6 @@ func executeTagsCommand(mockService service.OmniFocusService, args []string) (st
 	// Create a new root command for each test to avoid flag pollution
 	rootCmd := newTestRootCommand()
 
-	// Override the service for testing
-	Service = mockService
-	defer func() { Service = nil }()
-
 	// Add tags command
 	rootCmd.AddCommand(NewTagsCommand())
 
@@ -315,8 +312,9 @@ func executeTagsCommand(mockService service.OmniFocusService, args []string) (st
 	fullArgs := append([]string{"tags"}, args...)
 	rootCmd.SetArgs(fullArgs)
 
-	// Execute
-	err := rootCmd.Execute()
+	// Use ExecuteContext with service in context
+	ctx := ContextWithService(context.Background(), mockService)
+	err := rootCmd.ExecuteContext(ctx)
 
 	output := buf.String()
 	exitCode := 0

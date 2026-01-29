@@ -1,6 +1,6 @@
 # Binaries
-lazyfocus
-lf
+/lazyfocus
+/lf
 *.exe
 *.exe~
 *.dll

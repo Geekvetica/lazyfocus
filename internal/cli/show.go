@@ -50,7 +50,10 @@ func runShow(cmd *cobra.Command, args []string) error {
 	id := args[0]
 	itemType, _ := cmd.Flags().GetString("type")
 
-	svc := getService()
+	svc, err := getServiceFromCmd(cmd)
+	if err != nil {
+		return handleError(cmd, err)
+	}
 	formatter := getFormatter()
 
 	switch itemType {
