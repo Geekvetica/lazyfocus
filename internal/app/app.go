@@ -283,4 +283,3 @@ func (m Model) centerOverlay(content string) string {
 		Padding(verticalPad, 0, 0, horizontalPad).
 		Render(content)
 }
-

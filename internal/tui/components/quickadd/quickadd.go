@@ -223,4 +223,3 @@ func (m Model) centerModal(content string) string {
 		Padding(verticalPad, 0, 0, horizontalPad).
 		Render(content)
 }
-
