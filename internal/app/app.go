@@ -45,7 +45,7 @@ func NewApp(svc service.OmniFocusService) Model {
 		currentView: tui.ViewInbox,
 		quickAdd:    quickadd.New(styles, svc),
 		showHelp:    false,
-		compositor:  overlay.New(),
+		compositor:  overlay.New(styles.UI.OverlayBackdrop),
 		service:     svc,
 		styles:      styles,
 		keys:        keys,

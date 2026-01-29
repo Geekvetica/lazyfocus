@@ -10,15 +10,18 @@ import (
 
 // Compositor handles the positioning and compositing of overlay content.
 type Compositor struct {
-	width  int
-	height int
+	width         int
+	height        int
+	backdropStyle lipgloss.Style
 }
 
 // New creates a new Compositor with zero dimensions.
-func New() *Compositor {
+// The backdropStyle is used to style the base content when dimming is enabled.
+func New(backdropStyle lipgloss.Style) *Compositor {
 	return &Compositor{
-		width:  0,
-		height: 0,
+		width:         0,
+		height:        0,
+		backdropStyle: backdropStyle,
 	}
 }
 
@@ -81,10 +84,9 @@ func (c *Compositor) Compose(base, overlay string, dim bool) string {
 	return c.simpleLayerContent(processedBase, centeredOverlay)
 }
 
-// applyDim applies a faint style to make content appear dimmed.
+// applyDim applies the backdrop style to make content appear dimmed.
 func (c *Compositor) applyDim(content string) string {
-	dimStyle := lipgloss.NewStyle().Faint(true)
-	return dimStyle.Render(content)
+	return c.backdropStyle.Render(content)
 }
 
 // simpleLayerContent places overlay content on top of base content.

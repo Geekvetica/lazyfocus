@@ -13,9 +13,19 @@ func init() {
 	lipgloss.SetColorProfile(termenv.ANSI256)
 }
 
+// testBackdropStyle returns the default backdrop style for tests
+func testBackdropStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Faint(true)
+}
+
+// newTestCompositor creates a compositor with the default test backdrop style
+func newTestCompositor() *Compositor {
+	return New(testBackdropStyle())
+}
+
 // TestPlaceCentersContent verifies that content is centered in the viewport
 func TestPlaceCentersContent(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(80, 24)
 
 	// Simple 3x3 content
@@ -55,7 +65,7 @@ func TestPlaceCentersContent(t *testing.T) {
 
 // TestPlaceWithZeroDimensions verifies graceful handling of 0x0 viewport
 func TestPlaceWithZeroDimensions(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(0, 0)
 
 	content := "test"
@@ -69,7 +79,7 @@ func TestPlaceWithZeroDimensions(t *testing.T) {
 
 // TestPlaceWithSmallViewport verifies handling when content is larger than viewport
 func TestPlaceWithSmallViewport(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(10, 3)
 
 	// Content is larger than viewport
@@ -98,7 +108,7 @@ func TestPlaceWithSmallViewport(t *testing.T) {
 
 // TestComposeLayersOverlay verifies that overlay appears over base content
 func TestComposeLayersOverlay(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(80, 24)
 
 	base := "Base content line 1\nBase content line 2\nBase content line 3"
@@ -119,7 +129,7 @@ func TestComposeLayersOverlay(t *testing.T) {
 
 // TestComposeWithDimming verifies that base content is dimmed when requested
 func TestComposeWithDimming(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(80, 24)
 
 	base := "Base content"
@@ -170,7 +180,7 @@ func TestComposeWithDimming(t *testing.T) {
 
 // TestSetSizeUpdatesCompositor verifies that SetSize updates the compositor dimensions
 func TestSetSizeUpdatesCompositor(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 
 	// Initially should have zero dimensions
 	if c.width != 0 || c.height != 0 {
@@ -190,7 +200,7 @@ func TestSetSizeUpdatesCompositor(t *testing.T) {
 
 // TestComposeWithNilInputs verifies graceful handling of empty strings
 func TestComposeWithNilInputs(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(80, 24)
 
 	// Empty base
@@ -211,7 +221,7 @@ func TestComposeWithNilInputs(t *testing.T) {
 
 // TestComposeEmptyOverlayWithDimming verifies that empty overlay with dimming applies dim to base
 func TestComposeEmptyOverlayWithDimming(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(80, 24)
 
 	base := "Base content"
@@ -232,7 +242,7 @@ func TestComposeEmptyOverlayWithDimming(t *testing.T) {
 
 // TestPlaceWithNegativeDimensions verifies graceful handling of negative viewport dimensions
 func TestPlaceWithNegativeDimensions(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(-10, -5)
 
 	content := "test content"
@@ -350,7 +360,7 @@ func TestFindContentBounds(t *testing.T) {
 
 // TestCompositeLineCharLevel verifies character-level compositing
 func TestCompositeLineCharLevel(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(20, 1)
 
 	// Base: "│ABCDEFGHIJKLMNOP│  " (border chars at positions 0 and 17)
@@ -380,7 +390,7 @@ func TestCompositeLineCharLevel(t *testing.T) {
 
 // TestComposePreservesBaseBorders verifies that borders are preserved during compositing
 func TestComposePreservesBaseBorders(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(40, 10)
 
 	// Create base with borders
@@ -413,7 +423,7 @@ func TestComposePreservesBaseBorders(t *testing.T) {
 
 // TestCompositeLineCharLevelWithEmptyOverlay verifies handling of empty overlay
 func TestCompositeLineCharLevelWithEmptyOverlay(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(20, 1)
 
 	baseLine := "base content here"
@@ -429,7 +439,7 @@ func TestCompositeLineCharLevelWithEmptyOverlay(t *testing.T) {
 
 // TestCompositeLineCharLevelOverlayAtEdges verifies overlay at viewport edges
 func TestCompositeLineCharLevelOverlayAtEdges(t *testing.T) {
-	c := New()
+	c := newTestCompositor()
 	c.SetSize(20, 1)
 
 	// Overlay content at the start
