@@ -40,20 +40,20 @@
 
     // Parse and set due date
     if (dueDateStr) {
-      try {
-        taskProps.dueDate = new Date(dueDateStr);
-      } catch (e) {
+      const dueDate = new Date(dueDateStr);
+      if (isNaN(dueDate.getTime())) {
         return JSON.stringify({ error: `Invalid due date format: ${dueDateStr}` });
       }
+      taskProps.dueDate = dueDate;
     }
 
     // Parse and set defer date
     if (deferDateStr) {
-      try {
-        taskProps.deferDate = new Date(deferDateStr);
-      } catch (e) {
+      const deferDate = new Date(deferDateStr);
+      if (isNaN(deferDate.getTime())) {
         return JSON.stringify({ error: `Invalid defer date format: ${deferDateStr}` });
       }
+      taskProps.deferDate = deferDate;
     }
 
     // Create the task

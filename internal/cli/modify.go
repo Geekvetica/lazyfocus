@@ -32,6 +32,11 @@ func NewModifyCommand() *cobra.Command {
 Requires exactly one task ID as argument. Use flags to specify which
 fields to modify. At least one modification flag is required.
 
+Note: Due to OmniFocus automation limitations, only the first tag specified
+with --add-tag will be applied to the task (as the primary tag). Multiple
+tags can be specified but only the first will be used. Using --remove-tag
+will only remove the primary tag if it matches.
+
 Examples:
   lazyfocus modify task123 --name "New name"
   lazyfocus modify task123 --due tomorrow --flagged true

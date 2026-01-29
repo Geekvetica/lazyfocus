@@ -35,6 +35,10 @@ Natural syntax in description:
 
 Command-line flags override natural syntax when both are present.
 
+Note: Due to OmniFocus automation limitations, only the first tag specified
+will be applied to the task (as the primary tag). Multiple tags can be
+specified but only the first will be used.
+
 Examples:
   lazyfocus add "Buy milk #groceries"
   lazyfocus add "Call dentist" --due tomorrow

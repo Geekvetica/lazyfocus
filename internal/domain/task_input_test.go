@@ -3,6 +3,8 @@ package domain
 import (
 	"testing"
 	"time"
+
+	"github.com/pwojciechowski/lazyfocus/internal/testutil"
 )
 
 func TestTaskInput_Validate(t *testing.T) {
@@ -28,7 +30,7 @@ func TestTaskInput_Validate(t *testing.T) {
 				TagNames:    []string{"shopping", "errands"},
 				DueDate:     timePtr(time.Now()),
 				DeferDate:   timePtr(time.Now().Add(-24 * time.Hour)),
-				Flagged:     boolPtr(true),
+				Flagged:     testutil.BoolPtr(true),
 			},
 			wantErr: false,
 		},
@@ -189,8 +191,4 @@ func TestTaskInput_HasTags(t *testing.T) {
 // Helper functions for test data
 func timePtr(t time.Time) *time.Time {
 	return &t
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }

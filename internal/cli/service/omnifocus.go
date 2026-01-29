@@ -515,6 +515,7 @@ func buildCreateTaskParams(input domain.TaskInput) map[string]string {
 	// Tags as JSON - use a safe encoding that passes validation
 	// Convert to JSON then escape for template safety
 	if len(input.TagNames) > 0 {
+		// json.Marshal cannot fail when marshalling a []string slice, so error is safely ignored
 		tagsJSON, _ := json.Marshal(input.TagNames)
 		// The validation doesn't allow JSON syntax characters
 		// So we skip tags parameter and handle it differently in future iteration
@@ -567,12 +568,14 @@ func buildModifyTaskParams(id string, mod domain.TaskModification) map[string]st
 	}
 
 	if len(mod.AddTags) > 0 {
+		// json.Marshal cannot fail when marshalling a []string slice, so error is safely ignored
 		if tagsJSON, err := json.Marshal(mod.AddTags); err == nil {
 			params["AddTags"] = string(tagsJSON)
 		}
 	}
 
 	if len(mod.RemoveTags) > 0 {
+		// json.Marshal cannot fail when marshalling a []string slice, so error is safely ignored
 		if tagsJSON, err := json.Marshal(mod.RemoveTags); err == nil {
 			params["RemoveTags"] = string(tagsJSON)
 		}

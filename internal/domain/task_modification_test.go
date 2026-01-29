@@ -3,6 +3,8 @@ package domain
 import (
 	"testing"
 	"time"
+
+	"github.com/pwojciechowski/lazyfocus/internal/testutil"
 )
 
 func TestTaskModification_IsEmpty(t *testing.T) {
@@ -19,28 +21,28 @@ func TestTaskModification_IsEmpty(t *testing.T) {
 		{
 			name: "has name",
 			mod: TaskModification{
-				Name: stringPtr("New name"),
+				Name: testutil.StringPtr("New name"),
 			},
 			want: false,
 		},
 		{
 			name: "has note",
 			mod: TaskModification{
-				Note: stringPtr("New note"),
+				Note: testutil.StringPtr("New note"),
 			},
 			want: false,
 		},
 		{
 			name: "has project ID",
 			mod: TaskModification{
-				ProjectID: stringPtr("proj-123"),
+				ProjectID: testutil.StringPtr("proj-123"),
 			},
 			want: false,
 		},
 		{
 			name: "has empty project ID to remove from project",
 			mod: TaskModification{
-				ProjectID: stringPtr(""),
+				ProjectID: testutil.StringPtr(""),
 			},
 			want: false,
 		},
@@ -75,7 +77,7 @@ func TestTaskModification_IsEmpty(t *testing.T) {
 		{
 			name: "has flagged",
 			mod: TaskModification{
-				Flagged: boolPtr(true),
+				Flagged: testutil.BoolPtr(true),
 			},
 			want: false,
 		},
@@ -104,9 +106,9 @@ func TestTaskModification_IsEmpty(t *testing.T) {
 		{
 			name: "has multiple modifications",
 			mod: TaskModification{
-				Name:     stringPtr("New name"),
-				Note:     stringPtr("New note"),
-				Flagged:  boolPtr(true),
+				Name:     testutil.StringPtr("New name"),
+				Note:     testutil.StringPtr("New note"),
+				Flagged:  testutil.BoolPtr(true),
 				AddTags:  []string{"tag1", "tag2"},
 				ClearDue: true,
 			},
@@ -181,8 +183,8 @@ func TestTaskModification_HasTagChanges(t *testing.T) {
 		{
 			name: "has other changes but no tag changes",
 			mod: TaskModification{
-				Name:     stringPtr("New name"),
-				Flagged:  boolPtr(true),
+				Name:     testutil.StringPtr("New name"),
+				Flagged:  testutil.BoolPtr(true),
 				ClearDue: true,
 			},
 			want: false,
@@ -196,9 +198,4 @@ func TestTaskModification_HasTagChanges(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Helper function for test data
-func stringPtr(s string) *string {
-	return &s
 }

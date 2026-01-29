@@ -87,11 +87,11 @@
       if (dueDateStr === "CLEAR") {
         targetTask.dueDate = null;
       } else {
-        try {
-          targetTask.dueDate = new Date(dueDateStr);
-        } catch (e) {
+        const dueDate = new Date(dueDateStr);
+        if (isNaN(dueDate.getTime())) {
           return JSON.stringify({ error: `Invalid due date format: ${dueDateStr}` });
         }
+        targetTask.dueDate = dueDate;
       }
     }
 
@@ -100,11 +100,11 @@
       if (deferDateStr === "CLEAR") {
         targetTask.deferDate = null;
       } else {
-        try {
-          targetTask.deferDate = new Date(deferDateStr);
-        } catch (e) {
+        const deferDate = new Date(deferDateStr);
+        if (isNaN(deferDate.getTime())) {
           return JSON.stringify({ error: `Invalid defer date format: ${deferDateStr}` });
         }
+        targetTask.deferDate = deferDate;
       }
     }
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pwojciechowski/lazyfocus/internal/domain"
+	"github.com/pwojciechowski/lazyfocus/internal/testutil"
 )
 
 func TestParse(t *testing.T) {
@@ -100,7 +101,7 @@ func TestParse(t *testing.T) {
 			input: "Urgent task !",
 			want: domain.TaskInput{
 				Name:     "Urgent task",
-				Flagged:  boolPtr(true),
+				Flagged:  testutil.BoolPtr(true),
 				TagNames: []string{},
 			},
 		},
@@ -109,7 +110,7 @@ func TestParse(t *testing.T) {
 			input: "! Very urgent task",
 			want: domain.TaskInput{
 				Name:     "Very urgent task",
-				Flagged:  boolPtr(true),
+				Flagged:  testutil.BoolPtr(true),
 				TagNames: []string{},
 			},
 		},
@@ -121,7 +122,7 @@ func TestParse(t *testing.T) {
 				TagNames:    []string{"work"},
 				ProjectName: "Development",
 				DueDate:     timePtr("2024-01-19"), // Next Friday from Monday Jan 15
-				Flagged:     boolPtr(true),
+				Flagged:     testutil.BoolPtr(true),
 			},
 		},
 		{
@@ -133,7 +134,7 @@ func TestParse(t *testing.T) {
 				ProjectName: "My Project",
 				DueDate:     timePtr(ref.AddDate(0, 0, 7).Format("2006-01-02")),
 				DeferDate:   timePtr(ref.AddDate(0, 0, 1).Format("2006-01-02")),
-				Flagged:     boolPtr(true),
+				Flagged:     testutil.BoolPtr(true),
 			},
 		},
 		{
@@ -235,10 +236,6 @@ func timePtr(dateStr string) *time.Time {
 	// Set to 5 PM to match dateparse behavior
 	t = time.Date(t.Year(), t.Month(), t.Day(), 17, 0, 0, 0, time.Local)
 	return &t
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }
 
 func formatDate(t time.Time) string {
