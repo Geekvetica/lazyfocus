@@ -1,3 +1,4 @@
+// Package tasklist provides the task list TUI component.
 package tasklist
 
 import (
@@ -5,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/pwojciechowski/lazyfocus/internal/domain"
 	"github.com/pwojciechowski/lazyfocus/internal/tui"

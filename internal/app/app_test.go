@@ -171,8 +171,8 @@ func TestAppToggleHelp(t *testing.T) {
 
 func TestAppViewSwitching(t *testing.T) {
 	tests := []struct {
-		name        string
-		key         rune
+		name         string
+		key          rune
 		expectedView int
 	}{
 		{"Switch to Inbox", '1', tui.ViewInbox},

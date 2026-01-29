@@ -1,3 +1,4 @@
+// Package app provides the main TUI application model and orchestration.
 package app
 
 import (
@@ -283,10 +284,3 @@ func (m Model) centerOverlay(content string) string {
 		Render(content)
 }
 
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

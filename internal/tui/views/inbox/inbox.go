@@ -1,3 +1,4 @@
+// Package inbox provides the inbox view for the TUI.
 package inbox
 
 import (
@@ -139,9 +140,8 @@ func (m Model) renderError() string {
 	separator := strings.Repeat("─", separatorWidth)
 
 	errorText := fmt.Sprintf("Error: %v", m.err)
-	errorStyled := m.styles.UI.Help.Copy().
-		Foreground(m.styles.Colors.Error).
-		Render(errorText)
+	errorStyle := m.styles.UI.Help.Foreground(m.styles.Colors.Error)
+	errorStyled := errorStyle.Render(errorText)
 
 	return header + "\n" + separator + "\n" + errorStyled
 }

@@ -1,3 +1,4 @@
+// Package tui provides shared types for the TUI layer.
 package tui
 
 import "github.com/charmbracelet/bubbles/key"
