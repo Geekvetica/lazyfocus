@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 // NewTasksCommand creates the tasks command
 func NewTasksCommand() *cobra.Command {
 	cmd := &cobra.Command{
