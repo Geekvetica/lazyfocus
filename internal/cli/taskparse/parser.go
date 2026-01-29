@@ -1,3 +1,4 @@
+// Package taskparse provides natural language task input parsing for LazyFocus.
 package taskparse
 
 import (

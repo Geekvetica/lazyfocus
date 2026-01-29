@@ -12,15 +12,15 @@ import (
 // NewModifyCommand creates the modify command
 func NewModifyCommand() *cobra.Command {
 	var (
-		nameFlag      string
-		noteFlag      string
-		projectFlag   string
-		addTagFlags   []string
-		removeTagFlag []string
-		dueFlag       string
-		deferFlag     string
-		flaggedFlag   string
-		clearDueFlag  bool
+		nameFlag       string
+		noteFlag       string
+		projectFlag    string
+		addTagFlags    []string
+		removeTagFlag  []string
+		dueFlag        string
+		deferFlag      string
+		flaggedFlag    string
+		clearDueFlag   bool
 		clearDeferFlag bool
 	)
 
@@ -66,48 +66,10 @@ func runModify(cmd *cobra.Command, args []string, nameFlag, noteFlag, projectFla
 	taskID := args[0]
 
 	// Build TaskModification from flags
-	mod := domain.TaskModification{
-		AddTags:    addTagFlags,
-		RemoveTags: removeTagFlags,
-		ClearDue:   clearDueFlag,
-		ClearDefer: clearDeferFlag,
-	}
-
-	if nameFlag != "" {
-		mod.Name = &nameFlag
-	}
-
-	if noteFlag != "" {
-		mod.Note = &noteFlag
-	}
-
-	if projectFlag != "" {
-		// Will be resolved to ID below
-		mod.ProjectID = &projectFlag
-	}
-
-	if dueFlag != "" {
-		dueDate, err := dateparse.Parse(dueFlag)
-		if err != nil {
-			return handleError(cmd, fmt.Errorf("invalid due date: %w", err))
-		}
-		mod.DueDate = &dueDate
-	}
-
-	if deferFlag != "" {
-		deferDate, err := dateparse.Parse(deferFlag)
-		if err != nil {
-			return handleError(cmd, fmt.Errorf("invalid defer date: %w", err))
-		}
-		mod.DeferDate = &deferDate
-	}
-
-	if flaggedFlag != "" {
-		flaggedBool, err := strconv.ParseBool(flaggedFlag)
-		if err != nil {
-			return handleError(cmd, fmt.Errorf("invalid flagged value (use true/false): %w", err))
-		}
-		mod.Flagged = &flaggedBool
+	mod, err := buildModificationFromFlags(nameFlag, noteFlag, projectFlag, addTagFlags, removeTagFlags,
+		dueFlag, deferFlag, flaggedFlag, clearDueFlag, clearDeferFlag)
+	if err != nil {
+		return handleError(cmd, err)
 	}
 
 	// Check that at least one modification is specified
@@ -146,4 +108,55 @@ func runModify(cmd *cobra.Command, args []string, nameFlag, noteFlag, projectFla
 	cmd.Print(outputStr)
 
 	return nil
+}
+
+// buildModificationFromFlags constructs a TaskModification from command-line flags.
+func buildModificationFromFlags(nameFlag, noteFlag, projectFlag string,
+	addTagFlags, removeTagFlags []string, dueFlag, deferFlag, flaggedFlag string,
+	clearDueFlag, clearDeferFlag bool) (domain.TaskModification, error) {
+
+	mod := domain.TaskModification{
+		AddTags:    addTagFlags,
+		RemoveTags: removeTagFlags,
+		ClearDue:   clearDueFlag,
+		ClearDefer: clearDeferFlag,
+	}
+
+	if nameFlag != "" {
+		mod.Name = &nameFlag
+	}
+
+	if noteFlag != "" {
+		mod.Note = &noteFlag
+	}
+
+	if projectFlag != "" {
+		mod.ProjectID = &projectFlag
+	}
+
+	if dueFlag != "" {
+		dueDate, err := dateparse.Parse(dueFlag)
+		if err != nil {
+			return domain.TaskModification{}, fmt.Errorf("invalid due date: %w", err)
+		}
+		mod.DueDate = &dueDate
+	}
+
+	if deferFlag != "" {
+		deferDate, err := dateparse.Parse(deferFlag)
+		if err != nil {
+			return domain.TaskModification{}, fmt.Errorf("invalid defer date: %w", err)
+		}
+		mod.DeferDate = &deferDate
+	}
+
+	if flaggedFlag != "" {
+		flaggedBool, err := strconv.ParseBool(flaggedFlag)
+		if err != nil {
+			return domain.TaskModification{}, fmt.Errorf("invalid flagged value (use true/false): %w", err)
+		}
+		mod.Flagged = &flaggedBool
+	}
+
+	return mod, nil
 }

@@ -195,6 +195,20 @@ func TestParse(t *testing.T) {
 			wantErr:  true,
 			errMatch: "unrecognized",
 		},
+		{
+			name:     "invalid day in month-day format",
+			input:    "Jan abc",
+			ref:      ref,
+			wantErr:  true,
+			errMatch: "unrecognized",
+		},
+		{
+			name:     "invalid year in month-day-year format",
+			input:    "Jan 15 xyz",
+			ref:      ref,
+			wantErr:  true,
+			errMatch: "unrecognized",
+		},
 	}
 
 	for _, tt := range tests {

@@ -349,6 +349,50 @@ func TestAddCommand_QuietMode(t *testing.T) {
 	}
 }
 
+func TestAddCommand_InvalidDueDate(t *testing.T) {
+	// Test with --due "invalid" - should return error about invalid due date
+	mockService := &service.MockOmniFocusService{}
+	_, exitCode, err := executeAddCommand(mockService, []string{"Task name", "--due", "invalid"})
+
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	if exitCode == 0 {
+		t.Errorf("Expected non-zero exit code, got: %d", exitCode)
+	}
+
+	if !strings.Contains(err.Error(), "invalid due date") {
+		t.Errorf("Expected error about invalid due date, got: %v", err)
+	}
+
+	if !strings.Contains(err.Error(), "unrecognized date format") {
+		t.Errorf("Expected error about unrecognized date format, got: %v", err)
+	}
+}
+
+func TestAddCommand_InvalidDeferDate(t *testing.T) {
+	// Test with --defer "invalid" - should return error about invalid defer date
+	mockService := &service.MockOmniFocusService{}
+	_, exitCode, err := executeAddCommand(mockService, []string{"Task name", "--defer", "invalid"})
+
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	if exitCode == 0 {
+		t.Errorf("Expected non-zero exit code, got: %d", exitCode)
+	}
+
+	if !strings.Contains(err.Error(), "invalid defer date") {
+		t.Errorf("Expected error about invalid defer date, got: %v", err)
+	}
+
+	if !strings.Contains(err.Error(), "unrecognized date format") {
+		t.Errorf("Expected error about unrecognized date format, got: %v", err)
+	}
+}
+
 // Helper function to execute add command and capture output
 func executeAddCommand(mockService service.OmniFocusService, args []string) (string, int, error) {
 	// Create a new root command for each test to avoid flag pollution

@@ -488,6 +488,68 @@ func TestModifyCommand_QuietMode(t *testing.T) {
 	}
 }
 
+func TestModifyCommand_InvalidDueDate(t *testing.T) {
+	// Test with --due "invalid"
+	mockService := &service.MockOmniFocusService{}
+	_, exitCode, err := executeModifyCommand(mockService, []string{"task123", "--due", "invalid"})
+
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	if exitCode == 0 {
+		t.Errorf("Expected non-zero exit code, got: %d", exitCode)
+	}
+
+	if !strings.Contains(err.Error(), "invalid due date") {
+		t.Errorf("Expected error about invalid due date, got: %v", err)
+	}
+
+	if !strings.Contains(err.Error(), "unrecognized date format") {
+		t.Errorf("Expected error about unrecognized date format, got: %v", err)
+	}
+}
+
+func TestModifyCommand_InvalidDeferDate(t *testing.T) {
+	// Test with --defer "invalid"
+	mockService := &service.MockOmniFocusService{}
+	_, exitCode, err := executeModifyCommand(mockService, []string{"task123", "--defer", "invalid"})
+
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	if exitCode == 0 {
+		t.Errorf("Expected non-zero exit code, got: %d", exitCode)
+	}
+
+	if !strings.Contains(err.Error(), "invalid defer date") {
+		t.Errorf("Expected error about invalid defer date, got: %v", err)
+	}
+
+	if !strings.Contains(err.Error(), "unrecognized date format") {
+		t.Errorf("Expected error about unrecognized date format, got: %v", err)
+	}
+}
+
+func TestModifyCommand_InvalidFlaggedValue(t *testing.T) {
+	// Test with --flagged "invalid" (not true/false)
+	mockService := &service.MockOmniFocusService{}
+	_, exitCode, err := executeModifyCommand(mockService, []string{"task123", "--flagged", "invalid"})
+
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	if exitCode == 0 {
+		t.Errorf("Expected non-zero exit code, got: %d", exitCode)
+	}
+
+	if !strings.Contains(err.Error(), "invalid flagged value") {
+		t.Errorf("Expected error about invalid flagged value, got: %v", err)
+	}
+}
+
 // Helper function to execute modify command and capture output
 func executeModifyCommand(mockService service.OmniFocusService, args []string) (string, int, error) {
 	// Create a new root command for each test to avoid flag pollution

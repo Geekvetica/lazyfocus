@@ -1,3 +1,4 @@
+// Package dateparse provides natural language date parsing for LazyFocus.
 package dateparse
 
 import (

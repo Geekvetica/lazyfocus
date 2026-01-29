@@ -21,14 +21,14 @@ type MockOmniFocusService struct {
 	TaskErr         error
 
 	// Tasks - Write Operations
-	CreatedTask        *domain.Task
-	CreateTaskErr      error
-	ModifiedTask       *domain.Task
-	ModifyTaskErr      error
-	CompleteResult     *domain.OperationResult
-	CompleteTaskErr    error
-	DeleteResult       *domain.OperationResult
-	DeleteTaskErr      error
+	CreatedTask     *domain.Task
+	CreateTaskErr   error
+	ModifiedTask    *domain.Task
+	ModifyTaskErr   error
+	CompleteResult  *domain.OperationResult
+	CompleteTaskErr error
+	DeleteResult    *domain.OperationResult
+	DeleteTaskErr   error
 
 	// Projects
 	Projects            []domain.Project
@@ -51,8 +51,8 @@ type MockOmniFocusService struct {
 	PerspectiveTasksErr error
 
 	// Helper Methods
-	ResolvedProjectID  string
-	ResolveProjectErr  error
+	ResolvedProjectID string
+	ResolveProjectErr error
 }
 
 // GetInboxTasks returns configured inbox tasks or error

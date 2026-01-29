@@ -1,6 +1,7 @@
 package taskparse
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -264,4 +265,47 @@ func equalBoolPtrs(a, b *bool) bool {
 		return false
 	}
 	return *a == *b
+}
+
+func TestParse_DirectCall(t *testing.T) {
+	// Test the Parse() function directly (which calls ParseWithReference with time.Now())
+	result, err := Parse("Simple task")
+
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	if result.Name != "Simple task" {
+		t.Errorf("Parse() Name = %q, want %q", result.Name, "Simple task")
+	}
+}
+
+func TestParseWithReference_InvalidDueDate(t *testing.T) {
+	// Test with invalid due date format
+	ref := time.Date(2024, time.January, 15, 12, 0, 0, 0, time.Local)
+
+	_, err := ParseWithReference("Task due:invaliddate", ref)
+
+	if err == nil {
+		t.Fatal("Expected error for invalid due date, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "invalid due date") {
+		t.Errorf("Expected error to contain 'invalid due date', got: %v", err)
+	}
+}
+
+func TestParseWithReference_InvalidDeferDate(t *testing.T) {
+	// Test with invalid defer date format
+	ref := time.Date(2024, time.January, 15, 12, 0, 0, 0, time.Local)
+
+	_, err := ParseWithReference("Task defer:invaliddate", ref)
+
+	if err == nil {
+		t.Fatal("Expected error for invalid defer date, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "invalid defer date") {
+		t.Errorf("Expected error to contain 'invalid defer date', got: %v", err)
+	}
 }
