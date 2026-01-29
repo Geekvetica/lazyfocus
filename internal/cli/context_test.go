@@ -74,3 +74,50 @@ func TestContextWithService_ShouldCreateContextWithService(t *testing.T) {
 		t.Error("Expected to retrieve the same service instance")
 	}
 }
+
+func TestServiceFromContext_WithNilContext(t *testing.T) {
+	// Act
+	result, err := ServiceFromContext(nil)
+
+	// Assert
+	if !errors.Is(err, ErrServiceNotFound) {
+		t.Errorf("Expected ErrServiceNotFound, got %v", err)
+	}
+	if result != nil {
+		t.Error("Expected nil service when error occurs")
+	}
+}
+
+func TestContextWithService_WithNilContext(t *testing.T) {
+	// Arrange
+	mockService := &service.MockOmniFocusService{}
+
+	// Act
+	newCtx := ContextWithService(nil, mockService)
+
+	// Assert
+	retrievedService, err := ServiceFromContext(newCtx)
+	if err != nil {
+		t.Errorf("Expected no error when retrieving service, got %v", err)
+	}
+	if retrievedService != mockService {
+		t.Error("Expected to retrieve the same service instance")
+	}
+}
+
+func TestServiceFromContext_WithTypedNilService(t *testing.T) {
+	// Arrange
+	var nilSvc *service.MockOmniFocusService = nil
+	ctx := context.WithValue(context.Background(), serviceKey, nilSvc)
+
+	// Act
+	result, err := ServiceFromContext(ctx)
+
+	// Assert
+	if !errors.Is(err, ErrServiceNotFound) {
+		t.Errorf("Expected ErrServiceNotFound, got %v", err)
+	}
+	if result != nil {
+		t.Error("Expected nil service when error occurs")
+	}
+}
