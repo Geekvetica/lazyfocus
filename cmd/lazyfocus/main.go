@@ -26,6 +26,9 @@ func main() {
 	rootCmd.AddCommand(cli.NewDeleteCommand())
 	rootCmd.AddCommand(cli.NewModifyCommand())
 
+	// TUI command
+	rootCmd.AddCommand(cli.NewTUICommand())
+
 	if err := rootCmd.ExecuteContext(context.Background()); err != nil {
 		// Determine exit code based on error type
 		exitCode := output.ExitGeneralError
