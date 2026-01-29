@@ -828,3 +828,100 @@ func TestParseTagCounts_OmniFocusNotRunning(t *testing.T) {
 		t.Errorf("expected ErrOmniFocusNotRunning, got %v", err)
 	}
 }
+
+// Tests for ParseOperationResult (write operation responses)
+
+func TestParseOperationResult_ValidJSON_Success(t *testing.T) {
+	jsonStr := `{
+		"success": true,
+		"id": "task123",
+		"message": "Task completed"
+	}`
+
+	result, err := ParseOperationResult(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("expected result, got nil")
+	}
+
+	if !result.Success {
+		t.Error("expected success to be true")
+	}
+
+	if result.ID != "task123" {
+		t.Errorf("expected ID 'task123', got '%s'", result.ID)
+	}
+
+	if result.Message != "Task completed" {
+		t.Errorf("expected message 'Task completed', got '%s'", result.Message)
+	}
+}
+
+func TestParseOperationResult_ValidJSON_Failure(t *testing.T) {
+	jsonStr := `{
+		"success": false,
+		"id": "",
+		"message": "Operation failed"
+	}`
+
+	result, err := ParseOperationResult(jsonStr)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("expected result, got nil")
+	}
+
+	if result.Success {
+		t.Error("expected success to be false")
+	}
+
+	if result.Message != "Operation failed" {
+		t.Errorf("expected message 'Operation failed', got '%s'", result.Message)
+	}
+}
+
+func TestParseOperationResult_MalformedJSON(t *testing.T) {
+	jsonStr := `{"success": true`
+
+	_, err := ParseOperationResult(jsonStr)
+
+	if err == nil {
+		t.Error("expected error for malformed JSON, got nil")
+	}
+}
+
+func TestParseOperationResult_ErrorField(t *testing.T) {
+	jsonStr := `{"error": "Task not found"}`
+
+	_, err := ParseOperationResult(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when JSON contains error field")
+	}
+
+	expectedMsg := "Task not found"
+	if err.Error() != expectedMsg {
+		t.Errorf("expected error message '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestParseOperationResult_OmniFocusNotRunning(t *testing.T) {
+	jsonStr := `{"error": "OmniFocus is not running"}`
+
+	_, err := ParseOperationResult(jsonStr)
+
+	if err == nil {
+		t.Fatal("expected error when OmniFocus is not running")
+	}
+
+	if err != ErrOmniFocusNotRunning {
+		t.Errorf("expected ErrOmniFocusNotRunning, got %v", err)
+	}
+}

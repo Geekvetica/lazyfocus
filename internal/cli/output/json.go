@@ -73,6 +73,44 @@ func (f *JSONFormatter) FormatError(err error) string {
 	return f.marshal(output)
 }
 
+// FormatCreatedTask formats a newly created task as JSON
+func (f *JSONFormatter) FormatCreatedTask(task domain.Task) string {
+	output := map[string]interface{}{
+		"success": true,
+		"task":    task,
+	}
+	return f.marshal(output)
+}
+
+// FormatModifiedTask formats a modified task as JSON
+func (f *JSONFormatter) FormatModifiedTask(task domain.Task) string {
+	output := map[string]interface{}{
+		"success": true,
+		"task":    task,
+	}
+	return f.marshal(output)
+}
+
+// FormatCompletedTask formats a completed task operation result as JSON
+func (f *JSONFormatter) FormatCompletedTask(result domain.OperationResult) string {
+	output := map[string]interface{}{
+		"success": result.Success,
+		"id":      result.ID,
+		"message": result.Message,
+	}
+	return f.marshal(output)
+}
+
+// FormatDeletedTask formats a deleted task operation result as JSON
+func (f *JSONFormatter) FormatDeletedTask(result domain.OperationResult) string {
+	output := map[string]interface{}{
+		"success": result.Success,
+		"id":      result.ID,
+		"message": result.Message,
+	}
+	return f.marshal(output)
+}
+
 // marshal converts data to indented JSON string
 func (f *JSONFormatter) marshal(data interface{}) string {
 	bytes, err := json.MarshalIndent(data, "", "  ")

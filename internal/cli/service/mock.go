@@ -6,7 +6,7 @@ import (
 
 // MockOmniFocusService is a mock implementation of OmniFocusService for testing
 type MockOmniFocusService struct {
-	// Tasks
+	// Tasks - Read Operations
 	InboxTasks      []domain.Task
 	InboxTasksErr   error
 	AllTasks        []domain.Task
@@ -19,6 +19,16 @@ type MockOmniFocusService struct {
 	FlaggedTasksErr error
 	Task            *domain.Task
 	TaskErr         error
+
+	// Tasks - Write Operations
+	CreatedTask        *domain.Task
+	CreateTaskErr      error
+	ModifiedTask       *domain.Task
+	ModifyTaskErr      error
+	CompleteResult     *domain.OperationResult
+	CompleteTaskErr    error
+	DeleteResult       *domain.OperationResult
+	DeleteTaskErr      error
 
 	// Projects
 	Projects            []domain.Project
@@ -39,6 +49,10 @@ type MockOmniFocusService struct {
 	// Perspectives
 	PerspectiveTasks    []domain.Task
 	PerspectiveTasksErr error
+
+	// Helper Methods
+	ResolvedProjectID  string
+	ResolveProjectErr  error
 }
 
 // GetInboxTasks returns configured inbox tasks or error
@@ -143,4 +157,44 @@ func (m *MockOmniFocusService) GetPerspectiveTasks(name string) ([]domain.Task, 
 		return nil, m.PerspectiveTasksErr
 	}
 	return m.PerspectiveTasks, nil
+}
+
+// CreateTask returns configured created task or error
+func (m *MockOmniFocusService) CreateTask(input domain.TaskInput) (*domain.Task, error) {
+	if m.CreateTaskErr != nil {
+		return nil, m.CreateTaskErr
+	}
+	return m.CreatedTask, nil
+}
+
+// ModifyTask returns configured modified task or error
+func (m *MockOmniFocusService) ModifyTask(id string, mod domain.TaskModification) (*domain.Task, error) {
+	if m.ModifyTaskErr != nil {
+		return nil, m.ModifyTaskErr
+	}
+	return m.ModifiedTask, nil
+}
+
+// CompleteTask returns configured completion result or error
+func (m *MockOmniFocusService) CompleteTask(id string) (*domain.OperationResult, error) {
+	if m.CompleteTaskErr != nil {
+		return nil, m.CompleteTaskErr
+	}
+	return m.CompleteResult, nil
+}
+
+// DeleteTask returns configured deletion result or error
+func (m *MockOmniFocusService) DeleteTask(id string) (*domain.OperationResult, error) {
+	if m.DeleteTaskErr != nil {
+		return nil, m.DeleteTaskErr
+	}
+	return m.DeleteResult, nil
+}
+
+// ResolveProjectName returns configured project ID or error
+func (m *MockOmniFocusService) ResolveProjectName(name string) (string, error) {
+	if m.ResolveProjectErr != nil {
+		return "", m.ResolveProjectErr
+	}
+	return m.ResolvedProjectID, nil
 }

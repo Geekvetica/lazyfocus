@@ -133,6 +133,77 @@ func (f *HumanFormatter) FormatError(err error) string {
 	return fmt.Sprintf("Error: %s\n", err.Error())
 }
 
+// FormatCreatedTask formats a newly created task
+func (f *HumanFormatter) FormatCreatedTask(task domain.Task) string {
+	var b strings.Builder
+
+	// Success header
+	b.WriteString(fmt.Sprintf("✓ Created task: %s\n", task.ID))
+	b.WriteString(fmt.Sprintf("  %s\n", task.Name))
+
+	// Due date (if present)
+	if task.DueDate != nil {
+		b.WriteString(fmt.Sprintf("  Due: %s\n", formatDate(*task.DueDate)))
+	}
+
+	// Tags (if present)
+	if len(task.Tags) > 0 {
+		tagStr := make([]string, len(task.Tags))
+		for i, tag := range task.Tags {
+			tagStr[i] = "#" + tag
+		}
+		b.WriteString(fmt.Sprintf("  Tags: %s\n", strings.Join(tagStr, ", ")))
+	}
+
+	// Project (if present)
+	if task.ProjectName != "" {
+		b.WriteString(fmt.Sprintf("  Project: %s\n", task.ProjectName))
+	}
+
+	return b.String()
+}
+
+// FormatModifiedTask formats a modified task
+func (f *HumanFormatter) FormatModifiedTask(task domain.Task) string {
+	var b strings.Builder
+
+	// Success header
+	b.WriteString(fmt.Sprintf("✓ Modified task: %s\n", task.ID))
+	b.WriteString(fmt.Sprintf("  %s\n", task.Name))
+
+	// Due date (if present)
+	if task.DueDate != nil {
+		b.WriteString(fmt.Sprintf("  Due: %s\n", formatDate(*task.DueDate)))
+	}
+
+	// Flagged status (only show if flagged)
+	if task.Flagged {
+		b.WriteString("  Flagged: Yes\n")
+	}
+
+	return b.String()
+}
+
+// FormatCompletedTask formats a completed task operation result
+func (f *HumanFormatter) FormatCompletedTask(result domain.OperationResult) string {
+	var b strings.Builder
+
+	b.WriteString(fmt.Sprintf("✓ Completed: %s\n", result.ID))
+	b.WriteString("  Task marked as complete\n")
+
+	return b.String()
+}
+
+// FormatDeletedTask formats a deleted task operation result
+func (f *HumanFormatter) FormatDeletedTask(result domain.OperationResult) string {
+	var b strings.Builder
+
+	b.WriteString(fmt.Sprintf("✓ Deleted: %s\n", result.ID))
+	b.WriteString("  Task moved to trash\n")
+
+	return b.String()
+}
+
 // formatTaskLine formats a single task line with icons and details
 func (f *HumanFormatter) formatTaskLine(task domain.Task, options TaskFormatOptions) string {
 	var b strings.Builder

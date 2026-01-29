@@ -395,3 +395,210 @@ func TestJSONFormatter_FormatError(t *testing.T) {
 		})
 	}
 }
+
+func TestJSONFormatter_FormatCreatedTask(t *testing.T) {
+	formatter := NewJSONFormatter()
+	dueDate := time.Date(2026, 1, 30, 17, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name string
+		task domain.Task
+	}{
+		{
+			name: "minimal created task",
+			task: domain.Task{ID: "abc123", Name: "Buy groceries"},
+		},
+		{
+			name: "created task with all fields",
+			task: domain.Task{
+				ID:          "abc123",
+				Name:        "Buy groceries",
+				Note:        "Don't forget milk",
+				ProjectID:   "proj1",
+				ProjectName: "Home",
+				Tags:        []string{"shopping", "errands"},
+				DueDate:     &dueDate,
+				Flagged:     true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatter.FormatCreatedTask(tt.task)
+
+			// Verify it's valid JSON
+			var parsed map[string]interface{}
+			err := json.Unmarshal([]byte(result), &parsed)
+			if err != nil {
+				t.Fatalf("FormatCreatedTask() returned invalid JSON: %v", err)
+			}
+
+			// Verify success field
+			success, ok := parsed["success"].(bool)
+			if !ok || !success {
+				t.Fatal("FormatCreatedTask() missing or false 'success' field")
+			}
+
+			// Verify task field exists
+			taskData, ok := parsed["task"].(map[string]interface{})
+			if !ok {
+				t.Fatal("FormatCreatedTask() missing 'task' field")
+			}
+
+			// Verify task ID matches
+			if taskData["id"] != tt.task.ID {
+				t.Errorf("FormatCreatedTask() task ID = %v, want %v", taskData["id"], tt.task.ID)
+			}
+
+			// Verify task name matches
+			if taskData["name"] != tt.task.Name {
+				t.Errorf("FormatCreatedTask() task name = %v, want %v", taskData["name"], tt.task.Name)
+			}
+		})
+	}
+}
+
+func TestJSONFormatter_FormatModifiedTask(t *testing.T) {
+	formatter := NewJSONFormatter()
+	dueDate := time.Date(2026, 2, 1, 17, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name string
+		task domain.Task
+	}{
+		{
+			name: "minimal modified task",
+			task: domain.Task{ID: "abc123", Name: "Buy groceries"},
+		},
+		{
+			name: "modified task with updates",
+			task: domain.Task{
+				ID:      "abc123",
+				Name:    "Buy groceries (updated)",
+				DueDate: &dueDate,
+				Flagged: true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatter.FormatModifiedTask(tt.task)
+
+			// Verify it's valid JSON
+			var parsed map[string]interface{}
+			err := json.Unmarshal([]byte(result), &parsed)
+			if err != nil {
+				t.Fatalf("FormatModifiedTask() returned invalid JSON: %v", err)
+			}
+
+			// Verify success field
+			success, ok := parsed["success"].(bool)
+			if !ok || !success {
+				t.Fatal("FormatModifiedTask() missing or false 'success' field")
+			}
+
+			// Verify task field exists
+			taskData, ok := parsed["task"].(map[string]interface{})
+			if !ok {
+				t.Fatal("FormatModifiedTask() missing 'task' field")
+			}
+
+			// Verify task ID matches
+			if taskData["id"] != tt.task.ID {
+				t.Errorf("FormatModifiedTask() task ID = %v, want %v", taskData["id"], tt.task.ID)
+			}
+		})
+	}
+}
+
+func TestJSONFormatter_FormatCompletedTask(t *testing.T) {
+	formatter := NewJSONFormatter()
+
+	tests := []struct {
+		name   string
+		result domain.OperationResult
+	}{
+		{
+			name:   "successful completion",
+			result: domain.NewSuccessResult("abc123", "Task completed"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := formatter.FormatCompletedTask(tt.result)
+
+			// Verify it's valid JSON
+			var parsed map[string]interface{}
+			err := json.Unmarshal([]byte(output), &parsed)
+			if err != nil {
+				t.Fatalf("FormatCompletedTask() returned invalid JSON: %v", err)
+			}
+
+			// Verify success field
+			success, ok := parsed["success"].(bool)
+			if !ok || !success {
+				t.Fatal("FormatCompletedTask() missing or false 'success' field")
+			}
+
+			// Verify id field
+			id, ok := parsed["id"].(string)
+			if !ok || id != tt.result.ID {
+				t.Errorf("FormatCompletedTask() id = %v, want %v", id, tt.result.ID)
+			}
+
+			// Verify message field
+			message, ok := parsed["message"].(string)
+			if !ok || message == "" {
+				t.Error("FormatCompletedTask() missing or empty 'message' field")
+			}
+		})
+	}
+}
+
+func TestJSONFormatter_FormatDeletedTask(t *testing.T) {
+	formatter := NewJSONFormatter()
+
+	tests := []struct {
+		name   string
+		result domain.OperationResult
+	}{
+		{
+			name:   "successful deletion",
+			result: domain.NewSuccessResult("abc123", "Task deleted"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := formatter.FormatDeletedTask(tt.result)
+
+			// Verify it's valid JSON
+			var parsed map[string]interface{}
+			err := json.Unmarshal([]byte(output), &parsed)
+			if err != nil {
+				t.Fatalf("FormatDeletedTask() returned invalid JSON: %v", err)
+			}
+
+			// Verify success field
+			success, ok := parsed["success"].(bool)
+			if !ok || !success {
+				t.Fatal("FormatDeletedTask() missing or false 'success' field")
+			}
+
+			// Verify id field
+			id, ok := parsed["id"].(string)
+			if !ok || id != tt.result.ID {
+				t.Errorf("FormatDeletedTask() id = %v, want %v", id, tt.result.ID)
+			}
+
+			// Verify message field
+			message, ok := parsed["message"].(string)
+			if !ok || message == "" {
+				t.Error("FormatDeletedTask() missing or empty 'message' field")
+			}
+		})
+	}
+}

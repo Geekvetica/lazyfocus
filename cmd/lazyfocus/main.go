@@ -20,6 +20,12 @@ func main() {
 	rootCmd.AddCommand(cli.NewPerspectiveCommand())
 	rootCmd.AddCommand(cli.NewVersionCommand())
 
+	// Write operation commands
+	rootCmd.AddCommand(cli.NewAddCommand())
+	rootCmd.AddCommand(cli.NewCompleteCommand())
+	rootCmd.AddCommand(cli.NewDeleteCommand())
+	rootCmd.AddCommand(cli.NewModifyCommand())
+
 	if err := rootCmd.ExecuteContext(context.Background()); err != nil {
 		// Determine exit code based on error type
 		exitCode := output.ExitGeneralError
