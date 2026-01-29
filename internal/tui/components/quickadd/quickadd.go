@@ -104,14 +104,16 @@ func (m Model) View() string {
 	input := inputStyle.Render(m.textInput.View())
 	content += input + "\n"
 
-	// Error display (if any)
+	// Error display (fixed height to prevent layout shift)
+	errorStyle := lipgloss.NewStyle().
+		Foreground(m.styles.Colors.Error).
+		Width(modalWidth - 4).
+		Height(2)
+
 	if m.err != nil {
-		errorStyle := lipgloss.NewStyle().
-			Foreground(m.styles.Colors.Error).
-			Width(modalWidth - 4)
 		content += errorStyle.Render(fmt.Sprintf("Error: %s", m.err.Error())) + "\n"
 	} else {
-		content += "\n"
+		content += errorStyle.Render("") + "\n"
 	}
 
 	// Help text

@@ -2,6 +2,7 @@ package quickadd
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -355,16 +356,16 @@ func TestViewRendering(t *testing.T) {
 	}
 
 	// Should contain placeholder text hint
-	if !contains(view, "Add task") {
+	if !strings.Contains(view, "Add task") {
 		t.Error("Expected view to contain 'Add task' hint")
 	}
 
 	// Should contain help text
-	if !contains(view, "Enter") {
+	if !strings.Contains(view, "Enter") {
 		t.Error("Expected view to contain Enter key hint")
 	}
 
-	if !contains(view, "Escape") {
+	if !strings.Contains(view, "Escape") {
 		t.Error("Expected view to contain Escape key hint")
 	}
 }
@@ -388,7 +389,7 @@ func TestErrorDisplay(t *testing.T) {
 	view := model.View()
 
 	// Should contain error message
-	if !contains(view, "project not found") {
+	if !strings.Contains(view, "project not found") {
 		t.Error("Expected view to contain error message")
 	}
 }
@@ -579,7 +580,7 @@ func TestSubmitTaskProjectResolutionError(t *testing.T) {
 	}
 
 	// Error message should mention project
-	if !contains(model.err.Error(), "project not found") {
+	if !strings.Contains(model.err.Error(), "project not found") {
 		t.Errorf("Expected error to contain 'project not found', got: %v", model.err)
 	}
 
@@ -597,18 +598,4 @@ func TestSubmitTaskProjectResolutionError(t *testing.T) {
 	if errorMsg.Err == nil {
 		t.Error("Expected error in ErrorMsg")
 	}
-}
-
-// Helper function to check if string contains substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && containsHelper(s, substr))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mattn/go-runewidth"
 	"github.com/pwojciechowski/lazyfocus/internal/domain"
 	"github.com/pwojciechowski/lazyfocus/internal/tui"
 )
@@ -158,31 +159,17 @@ func (m Model) formatTaskLine(task domain.Task, selected bool) string {
 		rightSide = FlagIcon
 	}
 
-	// Calculate spacing to align right side
-	// Account for the width of emoji characters (they take up more space visually)
+	// Calculate spacing to align right side using runewidth for accurate display width
 	contentWidth := m.width
 	if contentWidth == 0 {
 		contentWidth = 80
 	}
 
-	// Calculate actual content length
-	leftLen := len(statusIcon) + 1 + len(task.Name)
-	rightLen := len(rightSide)
+	// Calculate display width using runewidth (handles emoji/Unicode correctly)
+	leftLen := runewidth.StringWidth(statusIcon) + 1 + runewidth.StringWidth(task.Name)
+	rightLen := runewidth.StringWidth(rightSide)
 
-	// Add visual compensation for emoji width
-	emojiCount := strings.Count(statusIcon, "☐") + strings.Count(statusIcon, "☑")
-	if task.Flagged {
-		emojiCount++
-	}
-	if task.DueDate != nil {
-		emojiCount++
-	}
-
-	// Emoji characters typically take 2 display cells but count as 1-4 bytes
-	// We need to compensate for the visual width
-	visualAdjustment := emojiCount
-
-	spacing := contentWidth - leftLen - rightLen - visualAdjustment - 2
+	spacing := contentWidth - leftLen - rightLen - 2
 	if spacing < 0 {
 		spacing = 1
 	}

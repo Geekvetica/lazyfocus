@@ -121,8 +121,8 @@ func TestDefaultKeyMap(t *testing.T) {
 		{
 			name:        "Quit binding",
 			binding:     km.Quit,
-			wantKeys:    []string{"q"},
-			wantHelp:    "q",
+			wantKeys:    []string{"q", "ctrl+c"},
+			wantHelp:    "q/ctrl+c",
 			wantEnabled: true,
 		},
 		{
@@ -202,6 +202,7 @@ func TestKeyBindingMatches(t *testing.T) {
 		{"QuickAdd with wrong key", km.QuickAdd, "b", false},
 		// Global
 		{"Quit with q", km.Quit, "q", true},
+		{"Quit with ctrl+c", km.Quit, "ctrl+c", true},
 		{"Help with ?", km.Help, "?", true},
 		{"Quit with wrong key", km.Quit, "x", false},
 	}

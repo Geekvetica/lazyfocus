@@ -97,8 +97,8 @@ func DefaultKeyMap() KeyMap {
 
 		// Global
 		Quit: key.NewBinding(
-			key.WithKeys("q"),
-			key.WithHelp("q", "quit"),
+			key.WithKeys("q", "ctrl+c"),
+			key.WithHelp("q/ctrl+c", "quit"),
 		),
 		Help: key.NewBinding(
 			key.WithKeys("?"),

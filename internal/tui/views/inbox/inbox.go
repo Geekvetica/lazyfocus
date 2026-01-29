@@ -39,10 +39,7 @@ func New(styles *tui.Styles, keys tui.KeyMap, svc service.OmniFocusService) Mode
 
 // Init initializes the inbox view
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		m.taskList.Init(),
-		m.loadTasks(),
-	)
+	return m.loadTasks()
 }
 
 // loadTasks loads tasks from the OmniFocus service
