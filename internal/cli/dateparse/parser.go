@@ -167,9 +167,18 @@ func parseISO(input string, ref time.Time) (time.Time, bool) {
 		return time.Time{}, false
 	}
 
-	year, _ := strconv.Atoi(matches[1])
-	month, _ := strconv.Atoi(matches[2])
-	day, _ := strconv.Atoi(matches[3])
+	year, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return time.Time{}, false
+	}
+	month, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return time.Time{}, false
+	}
+	day, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return time.Time{}, false
+	}
 
 	result := time.Date(year, time.Month(month), day, 17, 0, 0, 0, time.Local)
 	return result, true

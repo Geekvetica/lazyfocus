@@ -512,17 +512,12 @@ func buildCreateTaskParams(input domain.TaskInput) map[string]string {
 		params["ProjectID"] = input.ProjectID
 	}
 
-	// Tags as JSON - use a safe encoding that passes validation
-	// Convert to JSON then escape for template safety
-	if len(input.TagNames) > 0 {
-		// json.Marshal cannot fail when marshalling a []string slice, so error is safely ignored
-		tagsJSON, _ := json.Marshal(input.TagNames)
-		// The validation doesn't allow JSON syntax characters
-		// So we skip tags parameter and handle it differently in future iteration
-		// For now, just send empty array to satisfy script template
-		// TODO: Enhance parameter validation to support JSON or use alternative encoding
-		_ = tagsJSON // Suppress unused variable warning for now
-	}
+	// TODO: Tags cannot be passed during task creation due to parameter validation
+	// constraints that disallow JSON syntax characters (brackets, quotes). This requires
+	// either enhancing the validation layer or implementing an alternative encoding scheme.
+	// Tags will be added in a future iteration. For now, use modify command to add tags
+	// after task creation.
+	_ = input.TagNames // Acknowledge tag names exist but cannot be used yet
 
 	if input.DueDate != nil {
 		// Use a format without special characters that passes validation
