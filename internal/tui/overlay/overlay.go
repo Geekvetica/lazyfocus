@@ -81,7 +81,7 @@ func (c *Compositor) Compose(base, overlay string, dim bool) string {
 	// Since lipgloss.Place fills the entire viewport with spaces where
 	// there's no content, we just need to combine them with the overlay
 	// taking precedence where it has content.
-	return c.simpleLayerContent(processedBase, centeredOverlay)
+	return c.layerContentWithCharacterPrecision(processedBase, centeredOverlay)
 }
 
 // applyDim applies the backdrop style to make content appear dimmed.
@@ -89,9 +89,11 @@ func (c *Compositor) applyDim(content string) string {
 	return c.backdropStyle.Render(content)
 }
 
-// simpleLayerContent places overlay content on top of base content.
-// Uses character-level compositing to preserve base content on the sides of the overlay.
-func (c *Compositor) simpleLayerContent(base, overlay string) string {
+// layerContentWithCharacterPrecision places overlay content on top of base content.
+// Uses ANSI-aware character-level compositing to preserve base content on the sides
+// of the overlay, properly handling styled text via ansi.Cut, ansi.Truncate, and
+// ansi.TruncateLeft for left/middle/right reconstruction.
+func (c *Compositor) layerContentWithCharacterPrecision(base, overlay string) string {
 	// Split into lines for compositing
 	baseLines := strings.Split(base, "\n")
 	overlayLines := strings.Split(overlay, "\n")

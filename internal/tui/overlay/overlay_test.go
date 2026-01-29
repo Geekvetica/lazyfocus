@@ -456,3 +456,32 @@ func TestCompositeLineCharLevelOverlayAtEdges(t *testing.T) {
 		t.Errorf("expected base at end, got: %q", result)
 	}
 }
+
+// TestCompositeLineCharLevelOverlayAtRightEdge verifies overlay extending to the right edge
+// This tests the branch where right >= c.width-1 (line 160), meaning no right-side base content
+func TestCompositeLineCharLevelOverlayAtRightEdge(t *testing.T) {
+	c := newTestCompositor()
+	c.SetSize(20, 1)
+
+	// Overlay content extends to the right edge
+	baseLine := "BBBBBBBBBBBBBBBBBBBB"
+	overlayLine := "            OOOOOOOO" // content ends at position 19 (width-1)
+
+	result := c.compositeLineCharLevel(baseLine, overlayLine)
+
+	// Should have base content on left
+	if !strings.HasPrefix(result, "BBBBBBBBBBBB") {
+		t.Errorf("expected base content on left, got: %q", result)
+	}
+
+	// Should have overlay content on right (no base content appended after overlay)
+	if !strings.HasSuffix(result, "OOOOOOOO") {
+		t.Errorf("expected overlay at right edge, got: %q", result)
+	}
+
+	// Verify width is correct
+	resultWidth := lipgloss.Width(result)
+	if resultWidth != 20 {
+		t.Errorf("expected width 20, got %d", resultWidth)
+	}
+}
