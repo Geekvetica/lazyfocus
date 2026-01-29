@@ -205,9 +205,6 @@ func TestComposeWithNilInputs(t *testing.T) {
 		t.Error("should contain base even with empty overlay")
 	}
 
-	// Both empty
-	result3 := c.Compose("", "", false)
-	if result3 == "" {
-		// This is acceptable
-	}
+	// Both empty - should not panic
+	_ = c.Compose("", "", false)
 }
