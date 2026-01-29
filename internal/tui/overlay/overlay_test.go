@@ -208,3 +208,83 @@ func TestComposeWithNilInputs(t *testing.T) {
 	// Both empty - should not panic
 	_ = c.Compose("", "", false)
 }
+
+// TestComposeEmptyOverlayWithDimming verifies that empty overlay with dimming applies dim to base
+func TestComposeEmptyOverlayWithDimming(t *testing.T) {
+	c := New()
+	c.SetSize(80, 24)
+
+	base := "Base content"
+
+	// Empty overlay with dimming should apply dim to base
+	result := c.Compose(base, "", true)
+
+	// Should contain base content
+	if !strings.Contains(result, "Base") {
+		t.Error("should contain base content")
+	}
+
+	// Should have faint ANSI code applied (line 61 coverage)
+	if !strings.Contains(result, "\x1b[2m") {
+		t.Error("should apply faint styling when dim=true and overlay is empty")
+	}
+}
+
+// TestPlaceWithNegativeDimensions verifies graceful handling of negative viewport dimensions
+func TestPlaceWithNegativeDimensions(t *testing.T) {
+	c := New()
+	c.SetSize(-10, -5)
+
+	content := "test content"
+	result := c.Place(content)
+
+	// Should return content unchanged (not panic)
+	if result != content {
+		t.Errorf("expected content unchanged for negative dimensions, got %q", result)
+	}
+}
+
+// TestPadToWidth verifies the padding function handles various width scenarios
+func TestPadToWidth(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		width         int
+		expectedWidth int
+	}{
+		{
+			name:          "shorter than width gets padded",
+			input:         "Hi",
+			width:         10,
+			expectedWidth: 10,
+		},
+		{
+			name:          "equal to width unchanged",
+			input:         "0123456789",
+			width:         10,
+			expectedWidth: 10,
+		},
+		{
+			name:          "longer than width unchanged",
+			input:         "This is longer",
+			width:         5,
+			expectedWidth: 14, // unchanged - content is 14 chars wide
+		},
+		{
+			name:          "empty string gets padded",
+			input:         "",
+			width:         5,
+			expectedWidth: 5,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := padToWidth(tt.input, tt.width)
+			gotWidth := lipgloss.Width(result)
+			if gotWidth != tt.expectedWidth {
+				t.Errorf("expected width %d, got %d", tt.expectedWidth, gotWidth)
+			}
+		})
+	}
+}
