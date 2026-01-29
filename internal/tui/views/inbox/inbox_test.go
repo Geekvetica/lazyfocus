@@ -2,6 +2,7 @@ package inbox
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -419,5 +420,65 @@ func TestUpdate_PreservesTaskListState(t *testing.T) {
 	selected = m.SelectedTask()
 	if selected == nil || selected.Name != "Task 2" {
 		t.Error("expected Task 2 to still be selected after resize")
+	}
+}
+
+// TestUpdate_WindowSizeMsg_SmallHeight verifies WindowSizeMsg handles very small/zero height
+func TestUpdate_WindowSizeMsg_SmallHeight(t *testing.T) {
+	styles := tui.DefaultStyles()
+	keys := tui.DefaultKeyMap()
+	svc := &service.MockOmniFocusService{}
+
+	m := New(styles, keys, svc)
+
+	// Test with height smaller than header (should set availableHeight to 0)
+	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 1})
+
+	if newModel.width != 80 {
+		t.Errorf("expected width 80, got %d", newModel.width)
+	}
+
+	if newModel.height != 1 {
+		t.Errorf("expected height 1, got %d", newModel.height)
+	}
+
+	// The model should still be valid and not panic
+	view := newModel.View()
+	if view == "" {
+		t.Error("expected non-empty view even with small height")
+	}
+}
+
+// TestRenderError_ZeroWidth verifies renderError handles width=0
+func TestRenderError_ZeroWidth(t *testing.T) {
+	styles := tui.DefaultStyles()
+	keys := tui.DefaultKeyMap()
+	svc := &service.MockOmniFocusService{}
+
+	m := New(styles, keys, svc)
+
+	// Set an error without setting width (width should be 0)
+	expectedErr := errors.New("test error")
+	m, _ = m.Update(tui.ErrorMsg{Err: expectedErr})
+
+	// Width should still be 0 at this point
+	if m.width != 0 {
+		t.Errorf("expected width 0, got %d", m.width)
+	}
+
+	// Calling View should use default separator width of 40
+	view := m.View()
+	if view == "" {
+		t.Error("expected non-empty error view with width=0")
+	}
+
+	// View should contain the error message
+	if !strings.Contains(view, "test error") {
+		t.Error("expected view to contain error message")
+	}
+
+	// View should contain separator (40 characters by default when width=0)
+	if !strings.Contains(view, "─") {
+		t.Error("expected view to contain separator")
 	}
 }

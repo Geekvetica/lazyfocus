@@ -393,6 +393,212 @@ func TestErrorDisplay(t *testing.T) {
 	}
 }
 
+// TestInit verifies Init() returns nil
+func TestInit(t *testing.T) {
+	styles := tui.DefaultStyles()
+	mockSvc := &service.MockOmniFocusService{}
+
+	model := New(styles, mockSvc)
+
+	cmd := model.Init()
+	if cmd != nil {
+		t.Error("Expected Init() to return nil")
+	}
+}
+
+// TestUpdateWhenHidden verifies Update returns model unchanged when not visible
+func TestUpdateWhenHidden(t *testing.T) {
+	styles := tui.DefaultStyles()
+	mockSvc := &service.MockOmniFocusService{}
+
+	model := New(styles, mockSvc)
+	// Ensure model is hidden
+	if model.IsVisible() {
+		t.Fatal("Model should start hidden")
+	}
+
+	// Try to update with a key message
+	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}}
+	updatedModel, cmd := model.Update(keyMsg)
+
+	// Should return unchanged model and nil command
+	if cmd != nil {
+		t.Error("Expected nil command when hidden")
+	}
+
+	// Model should still be hidden
+	if updatedModel.IsVisible() {
+		t.Error("Model should remain hidden after update")
+	}
+
+	// Input should not have changed
+	if updatedModel.textInput.Value() != "" {
+		t.Error("Input should not change when model is hidden")
+	}
+}
+
+// TestUpdateNonKeyMessage verifies non-key messages pass through to text input
+func TestUpdateNonKeyMessage(t *testing.T) {
+	styles := tui.DefaultStyles()
+	mockSvc := &service.MockOmniFocusService{}
+
+	model := New(styles, mockSvc)
+	model = model.Show()
+
+	// Create a non-key message (e.g., window size message)
+	type CustomMsg struct{}
+	msg := CustomMsg{}
+
+	// Update should pass through to text input without error
+	updatedModel, cmd := model.Update(msg)
+
+	// Should return a model (cmd may or may not be nil, depending on textinput behavior)
+	if !updatedModel.IsVisible() {
+		t.Error("Model should remain visible")
+	}
+
+	// No error should be set
+	if updatedModel.err != nil {
+		t.Error("No error should be set for non-key messages")
+	}
+
+	// cmd should be returned (textinput may return a blink cmd)
+	_ = cmd
+}
+
+// TestCenterModalSmallViewport verifies centerModal handles small viewports (negative padding)
+func TestCenterModalSmallViewport(t *testing.T) {
+	styles := tui.DefaultStyles()
+	mockSvc := &service.MockOmniFocusService{}
+
+	model := New(styles, mockSvc)
+	model = model.Show()
+
+	// Set very small viewport that would cause negative padding
+	model = model.SetSize(10, 5)
+
+	// This should not panic and should return a view
+	view := model.View()
+
+	if view == "" {
+		t.Error("Expected non-empty view even with small viewport")
+	}
+
+	// Test with zero dimensions
+	model = model.SetSize(0, 0)
+	view = model.View()
+
+	if view == "" {
+		t.Error("Expected non-empty view even with zero dimensions")
+	}
+}
+
+// TestShowClearsError verifies Show() clears any existing error
+func TestShowClearsError(t *testing.T) {
+	styles := tui.DefaultStyles()
+	mockSvc := &service.MockOmniFocusService{
+		CreateTaskErr: errors.New("test error"),
+	}
+
+	model := New(styles, mockSvc)
+	model = model.Show()
+	model.textInput.SetValue("Test task")
+
+	// Trigger an error
+	enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	model, _ = model.Update(enterMsg)
+
+	// Verify error is set
+	if model.err == nil {
+		t.Fatal("Expected error to be set")
+	}
+
+	// Hide and show again
+	model = model.Hide()
+	model = model.Show()
+
+	// Error should be cleared
+	if model.err != nil {
+		t.Error("Expected error to be cleared after Show()")
+	}
+}
+
+// TestHideClearsError verifies Hide() clears any existing error
+func TestHideClearsError(t *testing.T) {
+	styles := tui.DefaultStyles()
+	mockSvc := &service.MockOmniFocusService{
+		CreateTaskErr: errors.New("test error"),
+	}
+
+	model := New(styles, mockSvc)
+	model = model.Show()
+	model.textInput.SetValue("Test task")
+
+	// Trigger an error
+	enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	model, _ = model.Update(enterMsg)
+
+	// Verify error is set
+	if model.err == nil {
+		t.Fatal("Expected error to be set")
+	}
+
+	// Hide the model
+	model = model.Hide()
+
+	// Error should be cleared
+	if model.err != nil {
+		t.Error("Expected error to be cleared after Hide()")
+	}
+}
+
+// TestSubmitTaskProjectResolutionError verifies error handling when project resolution fails
+func TestSubmitTaskProjectResolutionError(t *testing.T) {
+	styles := tui.DefaultStyles()
+
+	mockSvc := &service.MockOmniFocusService{
+		ResolveProjectErr: errors.New("project not found"),
+	}
+
+	model := New(styles, mockSvc)
+	model = model.Show()
+	model.textInput.SetValue("Task @InvalidProject")
+
+	// Press Enter
+	enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	model, cmd := model.Update(enterMsg)
+
+	// Should remain visible on error
+	if !model.IsVisible() {
+		t.Error("Expected quick add to remain visible on project resolution error")
+	}
+
+	// Should have error set
+	if model.err == nil {
+		t.Error("Expected error to be set for project resolution failure")
+	}
+
+	// Error message should mention project
+	if !contains(model.err.Error(), "project not found") {
+		t.Errorf("Expected error to contain 'project not found', got: %v", model.err)
+	}
+
+	// Should return ErrorMsg
+	if cmd == nil {
+		t.Fatal("Expected command to be returned")
+	}
+
+	msg := cmd()
+	errorMsg, ok := msg.(tui.ErrorMsg)
+	if !ok {
+		t.Fatalf("Expected ErrorMsg, got %T", msg)
+	}
+
+	if errorMsg.Err == nil {
+		t.Error("Expected error in ErrorMsg")
+	}
+}
+
 // Helper function to check if string contains substring
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && containsHelper(s, substr))

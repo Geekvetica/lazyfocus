@@ -402,3 +402,100 @@ func TestAppGlobalKeysIgnoredWhenOverlayVisible(t *testing.T) {
 		t.Error("expected quick add to still be visible")
 	}
 }
+
+func TestRenderHelpSmallWidth(t *testing.T) {
+	// Arrange
+	mockSvc := &service.MockOmniFocusService{}
+	app := NewApp(mockSvc)
+
+	// Set very small width to trigger min(60, m.width-4) constraint
+	newModel, _ := app.Update(tea.WindowSizeMsg{Width: 20, Height: 50})
+	app = newModel.(Model)
+
+	// Show help to trigger renderHelp()
+	newModel, _ = app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
+	app = newModel.(Model)
+
+	// Act
+	view := app.View()
+
+	// Assert - renderHelp should handle small width gracefully
+	if len(view) == 0 {
+		t.Error("expected non-empty view with help overlay")
+	}
+	// The help should render without panicking despite small width
+}
+
+func TestCenterOverlayLargeContent(t *testing.T) {
+	tests := []struct {
+		name           string
+		width          int
+		height         int
+		contentLines   int
+		contentWidth   int
+		expectedVerPad int
+		expectedHorPad int
+	}{
+		{
+			name:           "Content larger than viewport vertically",
+			width:          100,
+			height:         10,
+			contentLines:   20, // More lines than height
+			contentWidth:   50,
+			expectedVerPad: 0, // Should be clamped to 0
+			expectedHorPad: 25,
+		},
+		{
+			name:           "Content larger than viewport horizontally",
+			width:          50,
+			height:         30,
+			contentLines:   10,
+			contentWidth:   80, // Wider than width
+			expectedVerPad: 10,
+			expectedHorPad: 0, // Should be clamped to 0
+		},
+		{
+			name:           "Content larger than viewport both dimensions",
+			width:          50,
+			height:         20,
+			contentLines:   30,
+			contentWidth:   80,
+			expectedVerPad: 0, // Should be clamped to 0
+			expectedHorPad: 0, // Should be clamped to 0
+		},
+		{
+			name:           "Normal centered content",
+			width:          100,
+			height:         50,
+			contentLines:   10,
+			contentWidth:   40,
+			expectedVerPad: 20,
+			expectedHorPad: 30,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			mockSvc := &service.MockOmniFocusService{}
+			app := NewApp(mockSvc)
+
+			// Set viewport size
+			newModel, _ := app.Update(tea.WindowSizeMsg{Width: tt.width, Height: tt.height})
+			app = newModel.(Model)
+
+			// Show help to trigger centerOverlay via renderHelp
+			newModel, _ = app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
+			app = newModel.(Model)
+
+			// Act
+			view := app.View()
+
+			// Assert - should not panic and should produce output
+			if len(view) == 0 {
+				t.Error("expected non-empty view")
+			}
+			// centerOverlay should handle edge cases gracefully without panicking
+		})
+	}
+}

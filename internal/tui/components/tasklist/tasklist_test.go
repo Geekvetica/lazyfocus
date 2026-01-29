@@ -388,3 +388,197 @@ func TestCursorBoundsAfterTaskRemoval(t *testing.T) {
 		t.Errorf("expected cursor to be 0, got %d", m.cursor)
 	}
 }
+
+func TestInit(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	cmd := m.Init()
+
+	if cmd != nil {
+		t.Error("expected Init() to return nil")
+	}
+}
+
+func TestUpdateUnhandledMessage(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	originalCursor := m.cursor
+	originalTasks := m.tasks
+
+	// Send a message type that isn't handled
+	type UnhandledMsg struct{}
+	updatedModel, cmd := m.Update(UnhandledMsg{})
+
+	if cmd != nil {
+		t.Error("expected Update to return nil cmd for unhandled message")
+	}
+
+	if updatedModel.cursor != originalCursor {
+		t.Error("expected cursor to remain unchanged for unhandled message")
+	}
+
+	if len(updatedModel.tasks) != len(originalTasks) {
+		t.Error("expected tasks to remain unchanged for unhandled message")
+	}
+}
+
+func TestRenderLoadingZeroHeight(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	m = m.SetLoading(true)
+	m.height = 0
+
+	view := m.View()
+
+	if view != "Loading..." {
+		t.Errorf("expected 'Loading...' for zero height, got '%s'", view)
+	}
+}
+
+func TestRenderEmptyZeroHeight(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	m = m.SetTasks([]domain.Task{})
+	m.height = 0
+
+	view := m.View()
+
+	if view != "No tasks" {
+		t.Errorf("expected 'No tasks' for zero height, got '%s'", view)
+	}
+}
+
+func TestFormatDateYesterday(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	m.width = 80
+	m.height = 24
+
+	now := time.Now()
+	yesterday := now.AddDate(0, 0, -1)
+
+	tasks := []domain.Task{
+		{ID: "1", Name: "Yesterday task", DueDate: &yesterday},
+	}
+	m = m.SetTasks(tasks)
+
+	view := m.View()
+
+	if !strings.Contains(view, "Yesterday") {
+		t.Error("expected view to contain 'Yesterday'")
+	}
+}
+
+func TestFormatDateDifferentYear(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	m.width = 80
+	m.height = 24
+
+	now := time.Now()
+	differentYear := now.AddDate(-1, 0, 0)
+
+	tasks := []domain.Task{
+		{ID: "1", Name: "Last year task", DueDate: &differentYear},
+	}
+	m = m.SetTasks(tasks)
+
+	view := m.View()
+
+	// Should contain year in format "Jan 2, 2006"
+	expectedYear := differentYear.Format("2006")
+	if !strings.Contains(view, expectedYear) {
+		t.Errorf("expected view to contain year '%s'", expectedYear)
+	}
+
+	// Should also contain month
+	expectedMonth := differentYear.Format("Jan")
+	if !strings.Contains(view, expectedMonth) {
+		t.Errorf("expected view to contain month '%s'", expectedMonth)
+	}
+}
+
+func TestFormatDateSameYearDifferentMonth(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	m.width = 80
+	m.height = 24
+
+	now := time.Now()
+	// Get a date that's definitely in the same year but different month
+	// Add 2 months, or if that crosses year boundary, subtract 2 months
+	differentMonth := now.AddDate(0, 2, 0)
+	if differentMonth.Year() != now.Year() {
+		differentMonth = now.AddDate(0, -2, 0)
+	}
+
+	tasks := []domain.Task{
+		{ID: "1", Name: "Different month task", DueDate: &differentMonth},
+	}
+	m = m.SetTasks(tasks)
+
+	view := m.View()
+
+	// Should contain month in format "Jan 2" without year
+	expectedFormat := differentMonth.Format("Jan 2")
+	if !strings.Contains(view, expectedFormat) {
+		t.Errorf("expected view to contain '%s'", expectedFormat)
+	}
+
+	// Should NOT contain the year
+	year := differentMonth.Format("2006")
+	// Split view by lines and check each line doesn't have standalone year
+	lines := strings.Split(view, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "Different month task") {
+			// This line should have the date but not the year suffix
+			if strings.Contains(line, ", "+year) {
+				t.Errorf("expected same year date to not include year, got '%s'", line)
+			}
+		}
+	}
+}
+
+func TestFormatTaskLineSelected(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	m.width = 80
+
+	task := domain.Task{ID: "1", Name: "Test task"}
+	line := m.formatTaskLine(task, true)
+
+	// Line should be non-empty and contain task name
+	if line == "" {
+		t.Error("expected non-empty line for selected task")
+	}
+
+	if !strings.Contains(line, "Test task") {
+		t.Error("expected line to contain task name")
+	}
+}
+
+func TestFormatTaskLineCompleted(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	m.width = 80
+
+	task := domain.Task{ID: "1", Name: "Completed task", Completed: true}
+	line := m.formatTaskLine(task, false)
+
+	// Line should be non-empty and contain checked checkbox
+	if line == "" {
+		t.Error("expected non-empty line for completed task")
+	}
+
+	if !strings.Contains(line, CheckboxChecked) {
+		t.Error("expected line to contain checked checkbox")
+	}
+}
+
+func TestFormatTaskLineNormal(t *testing.T) {
+	m := New(tui.DefaultStyles(), tui.DefaultKeyMap())
+	m.width = 80
+
+	task := domain.Task{ID: "1", Name: "Normal task"}
+	line := m.formatTaskLine(task, false)
+
+	// Line should be non-empty and contain empty checkbox
+	if line == "" {
+		t.Error("expected non-empty line for normal task")
+	}
+
+	if !strings.Contains(line, CheckboxEmpty) {
+		t.Error("expected line to contain empty checkbox")
+	}
+}
