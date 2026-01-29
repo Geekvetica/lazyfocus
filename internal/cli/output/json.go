@@ -1,0 +1,84 @@
+package output
+
+import (
+	"encoding/json"
+
+	"github.com/pwojciechowski/lazyfocus/internal/domain"
+)
+
+// JSONFormatter implements Formatter interface for JSON output
+type JSONFormatter struct{}
+
+// NewJSONFormatter creates a new JSON formatter
+func NewJSONFormatter() *JSONFormatter {
+	return &JSONFormatter{}
+}
+
+// FormatTasks formats tasks as JSON
+func (f *JSONFormatter) FormatTasks(tasks []domain.Task, options TaskFormatOptions) string {
+	output := map[string]interface{}{
+		"tasks": tasks,
+		"count": len(tasks),
+	}
+	return f.marshal(output)
+}
+
+// FormatProjects formats projects as JSON
+func (f *JSONFormatter) FormatProjects(projects []domain.Project, options ProjectFormatOptions) string {
+	output := map[string]interface{}{
+		"projects": projects,
+		"count":    len(projects),
+	}
+	return f.marshal(output)
+}
+
+// FormatTags formats tags as JSON
+func (f *JSONFormatter) FormatTags(tags []domain.Tag, options TagFormatOptions) string {
+	output := map[string]interface{}{
+		"tags":  tags,
+		"count": len(tags),
+	}
+	return f.marshal(output)
+}
+
+// FormatTask formats a single task as JSON
+func (f *JSONFormatter) FormatTask(task domain.Task) string {
+	output := map[string]interface{}{
+		"task": task,
+	}
+	return f.marshal(output)
+}
+
+// FormatProject formats a single project as JSON
+func (f *JSONFormatter) FormatProject(project domain.Project) string {
+	output := map[string]interface{}{
+		"project": project,
+	}
+	return f.marshal(output)
+}
+
+// FormatTag formats a single tag as JSON
+func (f *JSONFormatter) FormatTag(tag domain.Tag) string {
+	output := map[string]interface{}{
+		"tag": tag,
+	}
+	return f.marshal(output)
+}
+
+// FormatError formats an error as JSON
+func (f *JSONFormatter) FormatError(err error) string {
+	output := map[string]interface{}{
+		"error": err.Error(),
+	}
+	return f.marshal(output)
+}
+
+// marshal converts data to indented JSON string
+func (f *JSONFormatter) marshal(data interface{}) string {
+	bytes, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		// Fallback to error JSON if marshaling fails
+		return `{"error": "failed to marshal JSON"}`
+	}
+	return string(bytes)
+}
