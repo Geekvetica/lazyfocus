@@ -63,41 +63,63 @@ When implementing features, use the appropriate subagents:
 
 ## Development Phases
 
-### Phase 1: Foundation & Bridge Layer
-- Go module setup with dependencies
-- Omni Automation bridge (execute JS, parse responses)
-- Domain models (Task, Project, Tag)
-- Verify OmniFocus communication
+### Phase 1: Foundation & Bridge Layer ✅ COMPLETE
+**Status:** Fully implemented and tested
+- ✅ Go module setup with dependencies (Cobra, Bubble Tea, Lip Gloss)
+- ✅ Omni Automation bridge (execute JS via osascript, parse JSON responses)
+- ✅ Domain models (Task, Project, Tag with full field support)
+- ✅ Verified OmniFocus communication and error handling
 
-### Phase 2: CLI Commands (Read Operations)
-- Cobra CLI structure
-- Read-only commands: `tasks`, `projects`, `tags`, `show`, `perspective`
-- Human and JSON output formatting
-- Filtering and querying support
+### Phase 2: CLI Commands (Read Operations) ✅ COMPLETE
+**Status:** All read commands implemented with filtering
+- ✅ Cobra CLI structure with root command
+- ✅ `tasks` command with comprehensive filtering (inbox, all, project, tag, flagged, due, completed)
+- ✅ `projects` command for listing all projects
+- ✅ `tags` command for listing all tags
+- ✅ `show` command for detailed task view
+- ✅ Human and JSON output formatting
+- ✅ `--json` flag support across all commands
 
-### Phase 3: CLI Commands (Write Operations)
-- Task creation with natural syntax
-- Task modification
-- Completion/deletion
-- Natural date parsing
+### Phase 3: CLI Commands (Write Operations) ✅ COMPLETE
+**Status:** Full CRUD operations with natural syntax parsing
+- ✅ `add` command with natural syntax parsing (#tags, @projects, due:, defer:, !)
+- ✅ `modify` command with granular field updates (add-tag, remove-tag, clear-due, etc.)
+- ✅ `complete` command with multi-task support
+- ✅ `delete` command with confirmation and force flag
+- ✅ Natural date parsing (relative, next, in N units, ISO format)
+- ⚠️ **Limitation:** Only one tag can be added during task creation via natural syntax due to OmniFocus API constraints. Use `modify --add-tag` for additional tags.
 
-### Phase 4: TUI - Basic Structure
-- Bubble Tea application shell
-- Basic navigation between views
-- Task list component
-- Quick add overlay
+### Phase 4: TUI - Basic Structure 🚧 IN PROGRESS
+**Status:** Inbox view and Quick Add functional, other views planned
+- ✅ Bubble Tea application shell with model architecture
+- ✅ Inbox view with task list rendering
+- ✅ Quick Add overlay with natural syntax support
+- ✅ Basic task navigation (j/k, Enter to view details)
+- ✅ Task completion (c key)
+- ✅ Task list component with formatting
+- ⬚ Projects view (planned)
+- ⬚ Tags view (planned)
+- ⬚ Forecast view (planned)
+- ⬚ Review view (planned)
+- ⬚ View switching (1-5 keys) (planned)
 
-### Phase 5: TUI - Full Implementation
-- All views (Inbox, Projects, Tags, Forecast, Review)
-- Search/filter functionality
-- All task actions within TUI
-- Vim-style command mode
+### Phase 5: TUI - Full Implementation ⬚ NOT STARTED
+**Status:** Planned for future development
+- ⬚ All views (Projects, Tags, Forecast, Review)
+- ⬚ Search/filter functionality within TUI
+- ⬚ All task actions within TUI (edit, delete, defer)
+- ⬚ Vim-style command mode (: prefix)
+- ⬚ Task detail view with edit capabilities
+- ⬚ Project navigation and management
+- ⬚ Tag filtering interface
 
-### Phase 6: Polish & Distribution
-- Error handling and edge cases
-- Configuration file support
-- Shell completions
-- Homebrew formula
+### Phase 6: Polish & Distribution ⬚ NOT STARTED
+**Status:** Planned for 1.0 release
+- ⬚ Comprehensive error handling and edge cases
+- ⬚ Configuration file support (~/.lazyfocus.yaml)
+- ⬚ Shell completions (bash, zsh, fish)
+- ⬚ Homebrew formula for easy installation
+- ⬚ Release automation via GitHub Actions
 
 ## Go Development Standards
 
@@ -118,14 +140,26 @@ When implementing features, use the appropriate subagents:
   - Automation permission issues
 
 **Common error scenarios:**
-- **Empty task name:** "task name is required"
-- **Task not found:** "task not found" (when using invalid task ID)
-- **Project not found:** "failed to resolve project: project not found"
-- **Invalid date format:** "invalid due date: unrecognized date format: xyz"
-- **No modifications:** "no modifications specified" (modify command without flags)
-- **Missing confirmation:** "confirmation required: use --force to delete" (delete without --force)
 
-In JSON mode, errors return `{"error": "message"}` with appropriate exit codes.
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| `task name is required` | Empty or whitespace-only task name | Provide a non-empty task name |
+| `task not found` | Invalid or non-existent task ID | Verify task ID using `lazyfocus tasks` |
+| `failed to resolve project: project not found` | Project name doesn't exist in OmniFocus | Check project name with `lazyfocus projects` |
+| `invalid due date: unrecognized date format: xyz` | Date string not in supported format | Use relative (tomorrow), next (next monday), in (in 3 days), or ISO format |
+| `no modifications specified` | `modify` command without any flags | Provide at least one modification flag |
+| `confirmation required: use --force to delete` | `delete` command without `--force` | Add `--force` flag or use `--json` mode |
+| `OmniFocus is not running` | OmniFocus application not launched | Launch OmniFocus before running commands |
+| `automation permission denied` | Automation permission not granted | Allow Terminal/iTerm access in System Preferences > Security > Automation |
+| `project requires single tag for natural syntax` | Multiple tags in natural syntax during `add` | Use only one `#tag` in natural syntax, or add via `modify --add-tag` |
+
+**Exit codes:**
+- `0` - Success
+- `1` - General error (invalid arguments, missing flags)
+- `2` - OmniFocus not running or permission denied
+- `3` - Item not found (task, project, or tag)
+
+In JSON mode, all errors return `{"error": "message"}` with appropriate exit codes.
 
 ### Testing
 - Follow TDD: Red → Green → Refactor
@@ -162,15 +196,87 @@ cmd := exec.Command("osascript", "-l", "JavaScript", "-e", script)
 - Include error information in JSON when errors occur
 - Use consistent date formats (ISO 8601)
 
+### Known API Limitations
+
+**Task Creation:**
+- Only one tag can be assigned during task creation via the Omni Automation API
+- Workaround: Create task with one tag, then use modify operations to add additional tags
+- This affects both natural syntax parsing and flag-based task creation
+
+**Task Modification:**
+- Multiple tags can be added/removed in a single modify operation
+- Date clearing requires explicit operations (cannot set dates to null in creation)
+
+**Performance:**
+- Each `osascript` call has ~100-200ms overhead
+- Batch operations when possible
+- Cache project and tag lists for validation
+
+**Error Handling:**
+- OmniFocus must be running for any operation
+- Some operations fail silently if OmniFocus is in an inconsistent state
+- Always validate IDs before operations when possible
+
 ## CLI Command Reference
 
 ### Read Commands
 
-- `tasks` - List tasks with filtering support
-- `projects` - List all projects
-- `tags` - List all tags
-- `show` - Show task details
-- `perspective` - View custom perspectives
+#### `tasks` - List tasks with filtering support
+
+**Basic usage:**
+```bash
+lazyfocus tasks              # Show inbox (default)
+lazyfocus tasks --all        # Show all tasks
+lazyfocus tasks --json       # JSON output
+```
+
+**Filtering flags:**
+- `--inbox` - Show inbox tasks only (default)
+- `--all` - Show all incomplete tasks
+- `--project <name>` - Filter by project name or ID
+- `--tag <name>` - Filter by tag name
+- `--flagged` - Show only flagged tasks
+- `--due <date>` - Show tasks due on or before date
+- `--completed` - Show completed tasks instead of incomplete
+
+**Examples:**
+```bash
+lazyfocus tasks --project Work
+lazyfocus tasks --tag urgent --flagged
+lazyfocus tasks --due today
+lazyfocus tasks --completed --project "Personal"
+```
+
+#### `projects` - List all projects
+
+```bash
+lazyfocus projects
+lazyfocus projects --json
+```
+
+Lists all projects in OmniFocus with task counts.
+
+#### `tags` - List all tags
+
+```bash
+lazyfocus tags
+lazyfocus tags --json
+```
+
+Lists all tags in OmniFocus.
+
+#### `show` - Show task details
+
+```bash
+lazyfocus show <task-id>
+lazyfocus show abc123 --json
+```
+
+Displays detailed information about a specific task including name, project, tags, dates, notes, and completion status.
+
+#### `perspective` - View custom perspectives
+
+**Status:** Planned for future implementation (requires OmniFocus Pro)
 
 ### Write Commands
 
@@ -192,13 +298,18 @@ lazyfocus add "With note" --note "Additional details here"
 
 **Available flags:**
 - `-p, --project <name>` - Project name or ID
-- `-t, --tag <name>` - Tags (repeatable)
+- `-t, --tag <name>` - Tag name (only one tag supported during creation)
 - `-d, --due <date>` - Due date
 - `--defer <date>` - Defer date
 - `-f, --flagged` - Mark as flagged
 - `-n, --note <text>` - Task note
 
 Command-line flags override natural syntax when both are present.
+
+**Known Limitation:**
+- Only **one tag** can be added during task creation due to OmniFocus Automation API constraints
+- Workaround: Use `lazyfocus modify <task-id> --add-tag <name>` to add additional tags after creation
+- Natural syntax with multiple `#tags` will only apply the first tag found
 
 #### `complete` - Mark tasks as complete
 
@@ -253,9 +364,11 @@ The `add` command supports natural language task input:
 
 **Tags:** `#tagname` or `#"tag with spaces"`
 ```bash
-lazyfocus add "Buy groceries #errands #shopping"
+lazyfocus add "Buy groceries #errands"
 lazyfocus add "Team sync #\"project alpha\""
 ```
+
+⚠️ **Note:** Only the first tag in natural syntax will be applied due to OmniFocus API limitations. Use `modify --add-tag` for additional tags.
 
 **Projects:** `@projectname` or `@"project with spaces"`
 ```bash
@@ -352,18 +465,53 @@ INBOX (3 tasks)
 
 ## TUI Standards
 
+### Current Implementation Status
+
+**✅ Implemented Features:**
+- Inbox view with task list rendering
+- Quick Add overlay (press `a`)
+- Task completion (press `c` on selected task)
+- Basic navigation (j/k for up/down, Enter for details)
+- Status bar with help text
+- Task list component with proper formatting
+
+**🚧 Planned Features:**
+- Projects view (view 2)
+- Tags view (view 3)
+- Forecast view (view 4)
+- Review view (view 5)
+- View switching via `1-5` keys
+- Task editing within TUI (press `e`)
+- Task deletion within TUI (press `d`)
+- Search/filter functionality
+- Vim-style command mode (`:` prefix)
+- Pane switching (h/l keys)
+
 ### Bubble Tea Patterns
 - Keep Model immutable, return new Model from Update
-- Use commands for async operations
+- Use commands for async operations (task loading, task operations)
 - Separate components into their own files
 - Use Lip Gloss for consistent styling
+- Handle errors gracefully with user-visible messages
 
 ### Key Bindings
-- `j/k` or `↑/↓` for navigation
-- `h/l` or `←/→` for pane switching
-- `1-5` for view switching
-- `a` for quick add, `c` for complete, `e` for edit
-- `q` to quit, `?` for help
+
+**Currently Implemented:**
+- `j` or `↓` - Move down in task list
+- `k` or `↑` - Move up in task list
+- `Enter` - View task details
+- `a` - Open Quick Add overlay
+- `c` - Complete selected task
+- `q` - Quit application
+- `?` - Show help (planned)
+
+**Planned:**
+- `1-5` - Switch between views (Inbox, Projects, Tags, Forecast, Review)
+- `h/l` or `←/→` - Pane switching (when applicable)
+- `e` - Edit selected task
+- `d` - Delete selected task
+- `/` - Search/filter
+- `:` - Vim-style command mode
 
 ### Component Interface
 ```go
@@ -373,6 +521,15 @@ type Component interface {
     View() string
 }
 ```
+
+### TUI Architecture
+
+The TUI follows a component-based architecture:
+
+- **Main Model (`internal/tui/app.go`)**: Root application state and orchestration
+- **Quick Add Component (`internal/tui/quickadd.go`)**: Overlay for adding tasks with natural syntax
+- **Task List Rendering**: In-place rendering of tasks in Inbox view
+- **Message Passing**: Custom messages for async operations (TasksLoadedMsg, TaskCompletedMsg)
 
 ## Testing Commands
 
@@ -417,6 +574,21 @@ go install ./cmd/lazyfocus
 - Support `--quiet` flag for scripting (exit codes only)
 - Task/Project IDs must be stable and usable in subsequent commands
 - Provide clear, parseable output for AI agent consumption
+
+## Documentation References
+
+LazyFocus maintains comprehensive documentation for different audiences:
+
+- **[`docs/commands.md`](/Users/pwojciechowski/_dev/lazyfocus/docs/commands.md)** - Complete CLI command reference with examples and all flags
+- **[`docs/json-schemas.md`](/Users/pwojciechowski/_dev/lazyfocus/docs/json-schemas.md)** - JSON schemas for AI agents and programmatic access
+- **[`docs/troubleshooting.md`](/Users/pwojciechowski/_dev/lazyfocus/docs/troubleshooting.md)** - Common issues, error messages, and solutions
+- **[`README.md`](/Users/pwojciechowski/_dev/lazyfocus/README.md)** - User-facing project overview and quick start guide
+
+When working on the codebase:
+- Update `docs/commands.md` when adding/modifying CLI commands
+- Update `docs/json-schemas.md` when changing JSON output structure
+- Update `docs/troubleshooting.md` when adding new error messages or handling edge cases
+- Keep `CLAUDE.md` (this file) synchronized with implementation status
 
 ## CI Debugging Commands
 
