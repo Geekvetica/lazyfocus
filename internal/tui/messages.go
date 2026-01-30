@@ -66,3 +66,63 @@ type ViewChangedMsg struct {
 
 // ClearErrorMsg is sent to clear any displayed error
 type ClearErrorMsg struct{}
+
+// Drill-down Navigation Messages
+
+// ProjectSelectedMsg is sent when a project is selected for drill-down
+type ProjectSelectedMsg struct {
+	ProjectID   string
+	ProjectName string
+}
+
+// TagSelectedMsg is sent when a tag is selected for drill-down
+type TagSelectedMsg struct {
+	TagID   string
+	TagName string
+}
+
+// DrillBackMsg is sent when navigating back from a drill-down view
+type DrillBackMsg struct{}
+
+// Task Action Messages (additional)
+
+// TaskFlagToggledMsg is sent when a task's flag status is toggled
+type TaskFlagToggledMsg struct {
+	TaskID   string
+	TaskName string
+	Flagged  bool
+}
+
+// ShowTaskDetailMsg is sent to show task detail view
+type ShowTaskDetailMsg struct {
+	Task domain.Task
+}
+
+// ShowEditOverlayMsg is sent to show the edit task overlay
+type ShowEditOverlayMsg struct {
+	Task domain.Task
+}
+
+// ShowDeleteConfirmMsg is sent to show delete confirmation
+type ShowDeleteConfirmMsg struct {
+	TaskID   string
+	TaskName string
+}
+
+// Search/Filter Messages
+
+// SearchChangedMsg is sent when search text changes
+type SearchChangedMsg struct {
+	Text string
+}
+
+// SearchClearedMsg is sent when search is cleared
+type SearchClearedMsg struct{}
+
+// Command Mode Messages
+
+// CommandExecutedMsg is sent when a command is executed
+type CommandExecutedMsg struct {
+	Command string
+	Args    []string
+}

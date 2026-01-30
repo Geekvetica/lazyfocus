@@ -39,12 +39,45 @@ type DueDateStyles struct {
 	Normal  lipgloss.Style
 }
 
+// ProjectStyles defines styles for project display
+type ProjectStyles struct {
+	Active    lipgloss.Style
+	OnHold    lipgloss.Style
+	Completed lipgloss.Style
+	Dropped   lipgloss.Style
+}
+
+// ForecastStyles defines styles for forecast view groups
+type ForecastStyles struct {
+	Overdue     lipgloss.Style
+	Today       lipgloss.Style
+	Tomorrow    lipgloss.Style
+	Later       lipgloss.Style
+	GroupHeader lipgloss.Style
+}
+
+// SearchStyles defines styles for search highlighting
+type SearchStyles struct {
+	Highlight lipgloss.Style
+	Input     lipgloss.Style
+}
+
+// TagStyles defines styles for tag display
+type TagStyles struct {
+	Badge    lipgloss.Style
+	Selected lipgloss.Style
+}
+
 // Styles contains all organized style groups
 type Styles struct {
-	Colors  ColorStyles
-	Task    TaskStyles
-	UI      UIStyles
-	DueDate DueDateStyles
+	Colors   ColorStyles
+	Task     TaskStyles
+	Project  ProjectStyles
+	Forecast ForecastStyles
+	Search   SearchStyles
+	Tag      TagStyles
+	UI       UIStyles
+	DueDate  DueDateStyles
 }
 
 // DefaultStyles returns the default style configuration
@@ -143,10 +176,78 @@ func DefaultStyles() *Styles {
 			Foreground(colors.Secondary),
 	}
 
+	// Project styles
+	projectStyles := ProjectStyles{
+		Active: lipgloss.NewStyle().
+			Foreground(colors.Primary),
+		OnHold: lipgloss.NewStyle().
+			Foreground(colors.Secondary).
+			Faint(true),
+		Completed: lipgloss.NewStyle().
+			Foreground(colors.Secondary).
+			Faint(true).
+			Strikethrough(true),
+		Dropped: lipgloss.NewStyle().
+			Foreground(colors.Error).
+			Faint(true).
+			Strikethrough(true),
+	}
+
+	// Forecast styles
+	forecastStyles := ForecastStyles{
+		Overdue: lipgloss.NewStyle().
+			Foreground(colors.Error).
+			Bold(true),
+		Today: lipgloss.NewStyle().
+			Foreground(colors.Warning).
+			Bold(true),
+		Tomorrow: lipgloss.NewStyle().
+			Foreground(colors.Primary),
+		Later: lipgloss.NewStyle().
+			Foreground(colors.Secondary).
+			Faint(true),
+		GroupHeader: lipgloss.NewStyle().
+			Bold(true).
+			Underline(true).
+			Foreground(colors.Primary),
+	}
+
+	// Search styles
+	searchStyles := SearchStyles{
+		Highlight: lipgloss.NewStyle().
+			Background(colors.Warning).
+			Foreground(lipgloss.AdaptiveColor{Light: "#000000", Dark: "#000000"}),
+		Input: lipgloss.NewStyle().
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(colors.Primary).
+			Padding(0, 1),
+	}
+
+	// Tag styles
+	tagStyles := TagStyles{
+		Badge: lipgloss.NewStyle().
+			Foreground(colors.Secondary).
+			Background(lipgloss.AdaptiveColor{Light: "#E8E8E8", Dark: "#3A3A3A"}).
+			Padding(0, 1).
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(colors.Secondary),
+		Selected: lipgloss.NewStyle().
+			Foreground(lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#000000"}).
+			Background(colors.Primary).
+			Padding(0, 1).
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(colors.Primary).
+			Bold(true),
+	}
+
 	return &Styles{
-		Colors:  colors,
-		Task:    taskStyles,
-		UI:      uiStyles,
-		DueDate: dueDateStyles,
+		Colors:   colors,
+		Task:     taskStyles,
+		Project:  projectStyles,
+		Forecast: forecastStyles,
+		Search:   searchStyles,
+		Tag:      tagStyles,
+		UI:       uiStyles,
+		DueDate:  dueDateStyles,
 	}
 }

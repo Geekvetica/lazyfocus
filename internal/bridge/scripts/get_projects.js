@@ -34,11 +34,21 @@
         continue;
       }
 
+      // Count tasks in the project
+      const tasks = project.flattenedTasks;
+      let taskCount = 0;
+      for (let j = 0; j < tasks.length; j++) {
+        if (!tasks[j].completed()) {
+          taskCount++;
+        }
+      }
+
       projects.push({
         id: project.id(),
         name: project.name(),
         status: projectStatus,
-        note: project.note() || ""
+        note: project.note() || "",
+        taskCount: taskCount
       });
     }
 

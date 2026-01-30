@@ -1,5 +1,5 @@
-// Package inbox provides the inbox view for the TUI.
-package inbox
+// Package review provides the review view for the TUI.
+package review
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"github.com/pwojciechowski/lazyfocus/internal/tui/filter"
 )
 
-// Model represents the inbox view state
+// Model represents the review view state
 type Model struct {
 	taskList  tasklist.Model
 	service   service.OmniFocusService
@@ -28,7 +28,7 @@ type Model struct {
 	allTasks  []domain.Task // Store all tasks for filtering
 }
 
-// New creates a new inbox view
+// New creates a new review view
 func New(styles *tui.Styles, keys tui.KeyMap, svc service.OmniFocusService) Model {
 	return Model{
 		taskList:  tasklist.New(styles, keys),
@@ -40,15 +40,14 @@ func New(styles *tui.Styles, keys tui.KeyMap, svc service.OmniFocusService) Mode
 	}
 }
 
-// Init initializes the inbox view
+// Init initializes the review view
 func (m Model) Init() tea.Cmd {
-	return m.loadTasks()
+	return m.loadFlaggedTasks()
 }
 
-// loadTasks loads tasks from the OmniFocus service
-func (m Model) loadTasks() tea.Cmd {
+func (m Model) loadFlaggedTasks() tea.Cmd {
 	return func() tea.Msg {
-		tasks, err := m.service.GetInboxTasks()
+		tasks, err := m.service.GetFlaggedTasks()
 		if err != nil {
 			return tui.ErrorMsg{Err: err}
 		}
@@ -56,7 +55,7 @@ func (m Model) loadTasks() tea.Cmd {
 	}
 }
 
-// Update handles messages and updates the model
+// Update handles messages
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tui.TasksLoadedMsg:
@@ -70,18 +69,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, nil
 
 	case tui.ErrorMsg:
-		// Store error for display
 		m.err = msg.Err
 		return m, nil
 
 	case tea.WindowSizeMsg:
-		// Update dimensions
 		m.width = msg.Width
 		m.height = msg.Height
 
-		// Pass resize to task list
-		// Calculate available height for task list (subtract header height)
-		headerHeight := 2 // Header + border
+		headerHeight := 3 // Header + subtext
 		availableHeight := msg.Height - headerHeight
 		if availableHeight < 0 {
 			availableHeight = 0
@@ -96,61 +91,45 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, cmd
 
 	default:
-		// Delegate other messages to task list
 		var cmd tea.Cmd
 		m.taskList, cmd = m.taskList.Update(msg)
 		return m, cmd
 	}
 }
 
-// View renders the inbox view
+// View renders the review view
 func (m Model) View() string {
-	// Show error if present
 	if m.err != nil {
 		return m.renderError()
 	}
 
-	// Render header
 	header := m.renderHeader()
+	content := m.taskList.View()
 
-	// Render task list
-	taskListView := m.taskList.View()
-
-	return header + "\n" + taskListView
+	return header + "\n" + content
 }
 
-// renderHeader renders the inbox header with task count
 func (m Model) renderHeader() string {
-	taskCount := m.TaskCount()
-	headerText := fmt.Sprintf("INBOX (%d tasks)", taskCount)
-
-	// Apply header style
+	headerText := fmt.Sprintf("REVIEW - Flagged Tasks (%d)", m.taskCount)
 	styled := m.styles.UI.Header.Render(headerText)
 
-	return styled
+	// Add subtext
+	subtext := m.styles.UI.Help.Render("Review flagged tasks: [c]omplete, [d]elete, [f]unflag")
+
+	return styled + "\n" + subtext
 }
 
-// renderError renders the error view
 func (m Model) renderError() string {
-	header := m.styles.UI.Header.Render("INBOX")
-
-	// Calculate separator width (default to 40 if width not set)
+	header := m.styles.UI.Header.Render("REVIEW")
 	separatorWidth := m.width
 	if separatorWidth == 0 {
 		separatorWidth = 40
 	}
 	separator := strings.Repeat("─", separatorWidth)
-
 	errorText := fmt.Sprintf("Error: %v", m.err)
 	errorStyle := m.styles.UI.Help.Foreground(m.styles.Colors.Error)
 	errorStyled := errorStyle.Render(errorText)
-
 	return header + "\n" + separator + "\n" + errorStyled
-}
-
-// TaskCount returns the number of tasks in the inbox
-func (m Model) TaskCount() int {
-	return m.taskCount
 }
 
 // SelectedTask returns the currently selected task
@@ -158,9 +137,14 @@ func (m Model) SelectedTask() *domain.Task {
 	return m.taskList.SelectedTask()
 }
 
-// Refresh reloads tasks from the service
+// TaskCount returns the number of flagged tasks
+func (m Model) TaskCount() int {
+	return m.taskCount
+}
+
+// Refresh reloads flagged tasks
 func (m Model) Refresh() tea.Cmd {
-	return m.loadTasks()
+	return m.loadFlaggedTasks()
 }
 
 // SetFilter sets the filter state and applies it to tasks

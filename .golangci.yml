@@ -3,6 +3,13 @@
 # =============================================================================
 # Purpose: Comprehensive linting configuration for Go code quality
 #
+# COMPATIBILITY: This configuration is for golangci-lint v1.x (NOT v2)
+# The CI workflow uses golangci-lint v1.64.x, so this config must remain
+# compatible with v1 format. Do NOT add v2-only features like:
+#   - version: 2
+#   - formatters: section
+#   - object-style formats: section
+#
 # This configuration balances strictness with practicality, focusing on:
 #   - Code correctness (govet, staticcheck, errcheck)
 #   - Code simplicity (gosimple, unused, ineffassign)
@@ -37,6 +44,7 @@ run:
 # Output configuration
 output:
   # Format: colored-line-number, line-number, json, tab, checkstyle, code-climate
+  # NOTE: v1 requires array format, NOT object format
   formats:
     - format: colored-line-number
   # Print lines of code with issue
