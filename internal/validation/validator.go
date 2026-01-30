@@ -8,13 +8,19 @@ import (
 	"github.com/pwojciechowski/lazyfocus/internal/errors"
 )
 
-// Field validation limits
-const (
-	MaxTaskNameLength    = 500
-	MaxNoteLength        = 10000
-	MaxProjectNameLength = 200
-	MaxTagNameLength     = 100
-)
+// MaxTaskNameLength is the maximum allowed length for a task name in OmniFocus.
+// This limit is based on practical usability constraints.
+const MaxTaskNameLength = 500
+
+// MaxNoteLength is the maximum allowed length for a task note.
+// OmniFocus supports longer notes, but this limit ensures reasonable performance.
+const MaxNoteLength = 10000
+
+// MaxProjectNameLength is the maximum allowed length for a project name.
+const MaxProjectNameLength = 200
+
+// MaxTagNameLength is the maximum allowed length for a tag name.
+const MaxTagNameLength = 100
 
 // ValidateTaskName validates a task name.
 // Returns a ValidationError if the name is empty, too long, or contains invalid characters.
@@ -54,6 +60,7 @@ func ValidateNote(note string) error {
 // Project names are optional, so empty strings are allowed.
 // Returns a ValidationError if the name is too long.
 func ValidateProjectName(name string) error {
+	name = strings.TrimSpace(name)
 	if name == "" {
 		return nil // Project is optional
 	}
@@ -69,6 +76,7 @@ func ValidateProjectName(name string) error {
 // ValidateTagName validates a tag name.
 // Returns a ValidationError if the name is empty or too long.
 func ValidateTagName(name string) error {
+	name = strings.TrimSpace(name)
 	if name == "" {
 		return errors.NewValidationError("tag name is required", "provide a non-empty tag name")
 	}

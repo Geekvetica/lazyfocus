@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/pwojciechowski/lazyfocus/internal/tui"
 	"github.com/pwojciechowski/lazyfocus/internal/tui/components/errorstate"
 	"github.com/stretchr/testify/assert"
 )
@@ -181,4 +183,86 @@ func TestInit(t *testing.T) {
 	cmd := m.Init()
 
 	assert.Nil(t, cmd, "Init should return nil command")
+}
+
+func TestView_WithNilError(t *testing.T) {
+	m := errorstate.New()
+
+	// Show with nil error (simulating potential bug scenario)
+	m = m.Show(nil, nil)
+
+	// Should not panic and should show fallback message
+	view := m.View()
+
+	assert.Contains(t, view, "An unknown error occurred", "View should show fallback message for nil error")
+	assert.NotEmpty(t, view, "View should not be empty when visible")
+}
+
+func TestNewWithStyles(t *testing.T) {
+	// Create custom styles
+	customStyles := &tui.Styles{
+		UI: tui.UIStyles{
+			Overlay: lipgloss.NewStyle().Background(lipgloss.Color("#FF0000")),
+		},
+		Colors: tui.ColorStyles{
+			Error:     lipgloss.AdaptiveColor{Light: "#FF0000", Dark: "#FF0000"},
+			Secondary: lipgloss.AdaptiveColor{Light: "#CCCCCC", Dark: "#CCCCCC"},
+		},
+	}
+
+	m := errorstate.NewWithStyles(customStyles)
+
+	assert.False(t, m.IsVisible(), "New error state should not be visible")
+
+	// Show error to verify styles are applied
+	testErr := errors.New("test error")
+	m = m.Show(testErr, nil)
+	view := m.View()
+
+	// Verify the view renders (styles are applied internally)
+	assert.Contains(t, view, "test error", "View should contain error message")
+}
+
+func TestView_SmallDimensions(t *testing.T) {
+	m := errorstate.New()
+	testErr := errors.New("test error")
+
+	m = m.Show(testErr, nil)
+	m = m.SetSize(10, 5) // Very small dimensions
+
+	// Should not panic with small dimensions
+	view := m.View()
+
+	// Modal width should fall back to minimum (30)
+	assert.NotEmpty(t, view, "View should render even with small dimensions")
+	assert.Contains(t, view, "test error", "View should still contain error message")
+}
+
+func TestUpdate_RetryKeyWithEmptyRunes(t *testing.T) {
+	m := errorstate.New()
+	testErr := errors.New("test error")
+	retryCmd := func() tea.Msg { return "retried" }
+
+	m = m.Show(testErr, retryCmd)
+
+	// Press key with empty runes array
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{}})
+
+	// Should not trigger retry
+	assert.True(t, newModel.IsVisible(), "Error should still be visible")
+	assert.Nil(t, cmd, "Should not return command with empty runes")
+}
+
+func TestUpdate_OtherKeyTypes(t *testing.T) {
+	m := errorstate.New()
+	testErr := errors.New("test error")
+
+	m = m.Show(testErr, nil)
+
+	// Press an unhandled key (space)
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+
+	// Should not affect visibility
+	assert.True(t, newModel.IsVisible(), "Error should still be visible")
+	assert.Nil(t, cmd, "Should not return command for unhandled key")
 }

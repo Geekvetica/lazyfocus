@@ -181,6 +181,11 @@ func TestValidateProjectName(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:        "Whitespace-only project name (treated as empty)",
+			projectName: "   \t\n   ",
+			expectError: false,
+		},
+		{
 			name:        "Valid project name",
 			projectName: "Work",
 			expectError: false,
@@ -241,6 +246,12 @@ func TestValidateTagName(t *testing.T) {
 		{
 			name:        "Empty tag name",
 			tagName:     "",
+			expectError: true,
+			errorMsg:    "tag name is required",
+		},
+		{
+			name:        "Whitespace-only tag name",
+			tagName:     "   \t\n   ",
 			expectError: true,
 			errorMsg:    "tag name is required",
 		},

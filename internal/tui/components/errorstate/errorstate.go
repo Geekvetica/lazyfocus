@@ -158,7 +158,11 @@ func (m Model) View() string {
 	messageStyle := m.styles.Message.
 		Width(modalWidth - 4).
 		Align(lipgloss.Left)
-	content += messageStyle.Render(m.err.Error()) + "\n\n"
+	errorMessage := "An unknown error occurred"
+	if m.err != nil {
+		errorMessage = m.err.Error()
+	}
+	content += messageStyle.Render(errorMessage) + "\n\n"
 
 	// Build hints
 	var hints string

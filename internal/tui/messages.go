@@ -139,8 +139,14 @@ type ErrorOccurredMsg struct {
 	RetryCmd  tea.Cmd
 }
 
-// ErrorDismissedMsg indicates the user dismissed an error
+// ErrorDismissedMsg indicates the user dismissed an error.
+//
+// Deprecated: Prefer using errorstate.ErrorDismissedMsg emitted by the
+// error state component. This type exists for backward compatibility.
 type ErrorDismissedMsg struct{}
 
-// RetryRequestedMsg indicates the user requested a retry
+// RetryRequestedMsg indicates the user requested a retry.
+//
+// Deprecated: The errorstate component handles retries via RetryCmd.
+// This type exists for backward compatibility.
 type RetryRequestedMsg struct{}

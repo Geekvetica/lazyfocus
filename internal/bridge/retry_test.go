@@ -281,3 +281,42 @@ func TestRetryableExecutor_MaxWaitCap(t *testing.T) {
 		t.Errorf("Expected elapsed time < %v (indicating MaxWait cap), got %v", maxExpectedWait, elapsed)
 	}
 }
+
+func TestRetryableExecutor_WrappedTimeoutError(t *testing.T) {
+	attemptCount := 0
+	// Simulate a wrapped timeout error (e.g., from fmt.Errorf("context: %w", ErrExecutionTimeout))
+	wrappedError := errors.New("operation failed: timeout occurred")
+
+	mock := &mockExecutor{
+		executeWithTimeoutFunc: func(script string, timeout time.Duration) (string, error) {
+			attemptCount++
+			if attemptCount < 2 {
+				// Return wrapped timeout error on first attempt
+				return "", errors.Join(wrappedError, ErrExecutionTimeout)
+			}
+			return "success after retry", nil
+		},
+	}
+
+	config := RetryConfig{
+		MaxAttempts: 3,
+		InitialWait: 10 * time.Millisecond,
+		MaxWait:     100 * time.Millisecond,
+	}
+
+	retryExecutor := NewRetryableExecutor(mock, config)
+
+	result, err := retryExecutor.ExecuteWithTimeout("test script", 5*time.Second)
+
+	if err != nil {
+		t.Errorf("Expected no error after retry, got %v", err)
+	}
+
+	if result != "success after retry" {
+		t.Errorf("Expected result 'success after retry', got %q", result)
+	}
+
+	if attemptCount != 2 {
+		t.Errorf("Expected 2 attempts (retry on wrapped timeout), got %d", attemptCount)
+	}
+}

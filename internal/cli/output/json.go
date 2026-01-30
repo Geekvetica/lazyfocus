@@ -71,8 +71,8 @@ func (f *JSONFormatter) FormatError(err error) string {
 		"error": err.Error(),
 	}
 
-	// Check if it's a LazyFocusError - need to import the errors package
-	// This is done via type assertion to avoid import cycle
+	// Check if it's a LazyFocusError using a local interface so we rely on
+	// structural typing and avoid importing the internal errors package.
 	type lazyFocusError interface {
 		error
 		ExitCode() int

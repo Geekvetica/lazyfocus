@@ -175,6 +175,66 @@ func TestLoad_InvalidConfigFile_ReturnsError(t *testing.T) {
 	}
 }
 
+func TestLoad_ConfigFileReadError(t *testing.T) {
+	// Create temp directory
+	tmpDir := t.TempDir()
+	oldHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", oldHome)
+
+	// Clear env vars
+	oldEnvVars := clearLazyFocusEnvVars()
+	defer restoreEnvVars(oldEnvVars)
+
+	// Create a config file with no read permissions
+	configPath := filepath.Join(tmpDir, ".lazyfocus.yaml")
+	configContent := `output:
+  format: json
+`
+	if err := os.WriteFile(configPath, []byte(configContent), 0000); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	_, err := Load()
+	// This should return an error because the file can't be read
+	if err == nil {
+		t.Error("Expected Load() to return error when config file is not readable, got nil")
+		// Clean up in case the test fails
+		os.Chmod(configPath, 0644)
+	} else {
+		// Restore permissions for cleanup
+		os.Chmod(configPath, 0644)
+	}
+}
+
+func TestLoad_UnmarshalError(t *testing.T) {
+	// Create temp directory with malformed config that passes YAML parsing but fails unmarshal
+	tmpDir := t.TempDir()
+	oldHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", oldHome)
+
+	// Clear env vars
+	oldEnvVars := clearLazyFocusEnvVars()
+	defer restoreEnvVars(oldEnvVars)
+
+	// Write YAML that's valid but has type mismatch (string instead of duration)
+	configContent := `output:
+  format: json
+timeout: "not-a-valid-duration-format"
+`
+	configPath := filepath.Join(tmpDir, ".lazyfocus.yaml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	_, err := Load()
+	// This should return an error during unmarshal due to invalid duration format
+	if err == nil {
+		t.Fatal("Expected Load() to return error for unmarshal failure, got nil")
+	}
+}
+
 func TestFilePath_ReturnsCorrectPath(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -288,6 +348,8 @@ func TestContextWithConfig_WithNilContext(t *testing.T) {
 
 // Helper functions
 
+// clearLazyFocusEnvVars clears all LAZYFOCUS_ environment variables and returns
+// a map of the original values for later restoration. This ensures test isolation.
 func clearLazyFocusEnvVars() map[string]string {
 	old := make(map[string]string)
 	for _, env := range os.Environ() {
@@ -302,6 +364,8 @@ func clearLazyFocusEnvVars() map[string]string {
 	return old
 }
 
+// restoreEnvVars restores previously saved environment variables.
+// Use with defer after clearLazyFocusEnvVars to ensure cleanup.
 func restoreEnvVars(vars map[string]string) {
 	// Clear any LAZYFOCUS_ vars first
 	for _, env := range os.Environ() {
@@ -319,6 +383,8 @@ func restoreEnvVars(vars map[string]string) {
 	}
 }
 
+// splitEnvVar splits a "KEY=VALUE" string into its components.
+// Returns empty slice if the format is invalid.
 func splitEnvVar(env string) []string {
 	for i := 0; i < len(env); i++ {
 		if env[i] == '=' {

@@ -4,6 +4,7 @@ package config
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -89,7 +90,7 @@ func Load() (*Config, error) {
 	// Read config file (ignore if not found)
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return nil, err
+			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
 	}
 

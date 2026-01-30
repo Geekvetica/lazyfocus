@@ -26,6 +26,12 @@ LazyFocus (`lazyfocus` or `lf`) provides seamless terminal access to OmniFocus v
 
 ## Installation
 
+### Homebrew (recommended)
+
+```bash
+brew install geekvetica/tap/lazyfocus
+```
+
 ### From Source
 
 ```bash
@@ -45,6 +51,40 @@ go install ./cmd/lazyfocus
 
 # Option 3: Create symbolic link as 'lf'
 ln -s $(pwd)/lazyfocus /usr/local/bin/lf
+```
+
+### Shell Completions
+
+After installing LazyFocus, set up shell completions for better command-line experience:
+
+```bash
+# Bash
+lazyfocus completion bash > /usr/local/etc/bash_completion.d/lazyfocus
+
+# Zsh
+lazyfocus completion zsh > "${fpath[1]}/_lazyfocus"
+
+# Fish
+lazyfocus completion fish > ~/.config/fish/completions/lazyfocus.fish
+```
+
+### Configuration
+
+LazyFocus supports a configuration file at `~/.lazyfocus.yaml`:
+
+```yaml
+output:
+  format: human  # or "json"
+timeout: 30s
+defaults:
+  project: ""
+tui:
+  theme: default
+  colors:
+    primary: "#5B9BD5"
+    flagged: "#ED7D31"
+    due: "#70AD47"
+    overdue: "#FF6B6B"
 ```
 
 ### First Run
@@ -322,29 +362,55 @@ All commands support these global flags:
 
 Launch the interactive TUI by running `lazyfocus` or `lf` without any subcommand.
 
-### Current Features
+### Features
 
-- **Inbox View** - Browse all inbox tasks with keyboard navigation
-- **Quick Add** - Press `a` to open the quick-add overlay
-- **Task List Navigation** - Vim-style `j/k` or arrow keys
+LazyFocus provides a full-featured terminal interface with multiple views and actions:
+
+**Views:**
+- **Inbox View** (`1`) - Browse all inbox tasks
+- **Projects View** (`2`) - Project list with drill-down to project tasks
+- **Tags View** (`3`) - Hierarchical tag list with drill-down
+- **Forecast View** (`4`) - Tasks grouped by due date (Overdue, Today, Tomorrow, Week, Later)
+- **Review View** (`5`) - Flagged tasks for quick review
+
+**Overlays:**
+- **Quick Add** (`a`) - Natural syntax task creation
+- **Task Detail** (`Enter`) - Full task information with actions
+- **Task Edit** (`e`) - Tabbed form for modifying tasks
+- **Delete Confirmation** (`d`) - Confirmation modal for destructive actions
+- **Search Input** (`/`) - Real-time task filtering
+- **Command Input** (`:`) - Vim-style command mode with tab completion
+- **Help** (`?`) - Keyboard shortcuts reference
+
+**Task Actions:**
+- Complete (`c`) - Mark task as complete
+- Delete (`d`) - Delete with confirmation
+- Edit (`e`) - Open edit overlay
+- Flag (`f`) - Toggle flagged status
 
 ### Key Bindings
 
-| Key | Action |
-|-----|--------|
-| `j` or `↓` | Move down |
-| `k` or `↑` | Move up |
-| `a` | Quick add task |
-| `q` | Quit |
-| `?` | Help (coming soon) |
+**Navigation:**
+- `j` or `↓` - Move down in list
+- `k` or `↑` - Move up in list
+- `Enter` - View task details / drill-down into project or tag
+- `h` or `Esc` - Go back from drill-down view
+- `1-5` - Switch between views (Inbox, Projects, Tags, Forecast, Review)
 
-### Coming Soon
+**Task Actions:**
+- `a` - Open Quick Add overlay
+- `c` - Complete selected task
+- `d` - Delete selected task (with confirmation)
+- `e` - Edit selected task
+- `f` - Toggle flag on selected task
 
-- Projects, Tags, Forecast, and Review views
-- Task completion (`c`) and editing (`e`) from TUI
-- Search and filter functionality
-- Vim-style command mode (`:`)
-- View switching (`1-5` keys)
+**Search & Commands:**
+- `/` - Open search input (real-time filtering)
+- `:` - Open command input (vim-style commands)
+
+**General:**
+- `?` - Toggle help overlay
+- `q` or `Ctrl+C` - Quit application
 
 ## For AI Agents
 
@@ -401,9 +467,11 @@ LazyFocus is designed with AI agents in mind. Every command supports the `--json
 ### Exit Codes
 
 - `0` - Success
-- `1` - General error
+- `1` - General error (invalid arguments, missing flags)
 - `2` - OmniFocus not running or permission denied
 - `3` - Task/project/tag not found
+- `4` - Validation error (invalid input data)
+- `5` - Permission error (automation access denied)
 
 **See [JSON Schemas](docs/json-schemas.md) for detailed JSON response formats.**
 
@@ -530,31 +598,35 @@ go run ./cmd/lazyfocus tasks --inbox
 - [x] Natural date parsing
 - [x] `version` - Show version
 
-### Phase 4: TUI - Basic Structure 🚧 IN PROGRESS
+### Phase 4: TUI - Basic Structure ✅ COMPLETE
 - [x] Bubble Tea application shell
 - [x] Inbox view
 - [x] Quick Add overlay
 - [x] Basic navigation (j/k, arrows)
-- [ ] Task completion from TUI
-- [ ] Task editing from TUI
+- [x] Task completion from TUI
+- [x] Task editing from TUI
+- [x] Task list component with formatting
+- [x] Help overlay
+- [x] Overlay compositor
 
-### Phase 5: TUI - Full Implementation ⬚ NOT STARTED
-- [ ] Projects view
-- [ ] Tags view
-- [ ] Forecast view
-- [ ] Review view
-- [ ] Search/filter functionality
-- [ ] All task actions within TUI
-- [ ] Vim-style command mode (`:`)
-- [ ] View switching (1-5 keys)
-- [ ] Help overlay (`?`)
+### Phase 5: TUI - Full Implementation ✅ COMPLETE
+- [x] Projects view with drill-down
+- [x] Tags view with hierarchical display
+- [x] Forecast view with due date grouping
+- [x] Review view for flagged tasks
+- [x] Search/filter functionality
+- [x] All task actions within TUI (complete, delete, edit, flag)
+- [x] Vim-style command mode (`:`) with tab completion
+- [x] View switching (1-5 keys)
+- [x] Help overlay (`?`)
 
-### Phase 6: Polish & Distribution ⬚ NOT STARTED
-- [ ] Comprehensive error handling
-- [ ] Configuration file support (`~/.lazyfocusrc`)
-- [ ] Shell completions (bash, zsh, fish)
-- [ ] Homebrew formula
+### Phase 6: Polish & Distribution 🚧 IN PROGRESS
+- [x] Comprehensive error handling
+- [x] Shell completions (bash, zsh, fish)
+- [x] Homebrew formula
+- [x] Configuration file support (`~/.lazyfocus.yaml`)
 - [ ] GitHub releases with binaries
+- [ ] Release automation via GitHub Actions
 - [ ] Documentation website
 
 ## Contributing

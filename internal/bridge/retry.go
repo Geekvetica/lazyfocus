@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"errors"
 	"time"
 )
 
@@ -59,7 +60,7 @@ func (r *RetryableExecutor) ExecuteWithTimeout(script string, timeout time.Durat
 		}
 
 		// Only retry on timeout errors
-		if err != ErrExecutionTimeout {
+		if !errors.Is(err, ErrExecutionTimeout) {
 			return "", err
 		}
 
