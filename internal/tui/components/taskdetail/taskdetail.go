@@ -14,12 +14,23 @@ import (
 	"github.com/pwojciechowski/lazyfocus/internal/tui"
 )
 
-// Action messages emitted by the task detail view
+// CloseMsg signals the task detail view should be closed.
 type CloseMsg struct{}
+
+// EditRequestedMsg signals the user wants to edit the task.
 type EditRequestedMsg struct{ Task domain.Task }
+
+// CompleteRequestedMsg signals the user wants to complete the task.
 type CompleteRequestedMsg struct{ TaskID string }
+
+// DeleteRequestedMsg signals the user wants to delete the task.
 type DeleteRequestedMsg struct{ TaskID, TaskName string }
-type FlagRequestedMsg struct{ TaskID string; Flagged bool }
+
+// FlagRequestedMsg signals the user wants to toggle the task flag.
+type FlagRequestedMsg struct {
+	TaskID  string
+	Flagged bool
+}
 
 // Model represents the task detail view state
 type Model struct {
@@ -142,12 +153,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 
 	// Scroll down
 	case key.Matches(msg, m.keys.Down):
-		m.viewport.LineDown(1)
+		m.viewport.ScrollDown(1)
 		return m, nil
 
 	// Scroll up
 	case key.Matches(msg, m.keys.Up):
-		m.viewport.LineUp(1)
+		m.viewport.ScrollUp(1)
 		return m, nil
 	}
 

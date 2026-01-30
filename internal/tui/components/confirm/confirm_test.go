@@ -149,7 +149,7 @@ func TestUpdate_ContextPassedThrough(t *testing.T) {
 	m := New(styles).ShowWithContext("Delete", "Sure?", ctx)
 
 	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
-	m, cmd := m.Update(keyMsg)
+	_, cmd := m.Update(keyMsg)
 
 	if cmd == nil {
 		t.Fatal("cmd should not be nil")
@@ -170,7 +170,7 @@ func TestUpdate_NotVisibleIgnoresInput(t *testing.T) {
 	m := New(styles) // Not visible
 
 	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
-	m, cmd := m.Update(keyMsg)
+	_, cmd := m.Update(keyMsg)
 
 	if cmd != nil {
 		t.Error("should not return command when not visible")

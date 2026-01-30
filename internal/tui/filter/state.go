@@ -3,6 +3,7 @@ package filter
 // DueFilter defines due date filtering options
 type DueFilter int
 
+// DueFilter constants for filtering tasks by due date.
 const (
 	DueNone DueFilter = iota
 	DueToday

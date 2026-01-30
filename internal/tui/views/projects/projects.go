@@ -17,6 +17,7 @@ import (
 // ViewMode represents whether we're viewing projects or a project's tasks
 type ViewMode int
 
+// ViewMode constants for projects view mode.
 const (
 	ModeProjectList ViewMode = iota
 	ModeProjectTasks

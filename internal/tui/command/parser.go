@@ -12,8 +12,8 @@ type Command struct {
 	Args []string
 }
 
-// CommandDef defines a command with its aliases
-type CommandDef struct {
+// Def defines a command with its aliases
+type Def struct {
 	Name        string
 	Aliases     []string
 	Description string
@@ -21,7 +21,7 @@ type CommandDef struct {
 }
 
 // Available commands
-var commands = []CommandDef{
+var commands = []Def{
 	{Name: "quit", Aliases: []string{"q", "exit"}, Description: "Quit application"},
 	{Name: "refresh", Aliases: []string{"w", "sync"}, Description: "Refresh current view"},
 	{Name: "add", Aliases: []string{"a"}, Description: "Add new task", ArgsHint: "<task name>"},
@@ -137,6 +137,6 @@ func (p *Parser) GetCompletions(prefix string) []string {
 }
 
 // GetCommands returns all available command definitions
-func GetCommands() []CommandDef {
+func GetCommands() []Def {
 	return commands
 }

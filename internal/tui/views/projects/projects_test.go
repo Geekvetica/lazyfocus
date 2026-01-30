@@ -28,9 +28,9 @@ func (m *MockService) GetInboxTasks() ([]domain.Task, error) { return nil, nil }
 func (m *MockService) GetAllTasks(f service.TaskFilters) ([]domain.Task, error) {
 	return nil, nil
 }
-func (m *MockService) GetTasksByTag(tagID string) ([]domain.Task, error)   { return nil, nil }
-func (m *MockService) GetFlaggedTasks() ([]domain.Task, error)             { return nil, nil }
-func (m *MockService) GetTaskByID(id string) (*domain.Task, error)         { return nil, nil }
+func (m *MockService) GetTasksByTag(tagID string) ([]domain.Task, error) { return nil, nil }
+func (m *MockService) GetFlaggedTasks() ([]domain.Task, error)           { return nil, nil }
+func (m *MockService) GetTaskByID(id string) (*domain.Task, error)       { return nil, nil }
 func (m *MockService) CreateTask(input domain.TaskInput) (*domain.Task, error) {
 	return nil, nil
 }
@@ -40,7 +40,7 @@ func (m *MockService) ModifyTask(id string, mod domain.TaskModification) (*domai
 func (m *MockService) CompleteTask(id string) (*domain.OperationResult, error) {
 	return nil, nil
 }
-func (m *MockService) DeleteTask(id string) (*domain.OperationResult, error) { return nil, nil }
+func (m *MockService) DeleteTask(id string) (*domain.OperationResult, error)  { return nil, nil }
 func (m *MockService) GetProjectByID(id string) (*domain.Project, error)      { return nil, nil }
 func (m *MockService) GetProjectWithTasks(id string) (*domain.Project, error) { return nil, nil }
 func (m *MockService) GetTags() ([]domain.Tag, error)                         { return nil, nil }

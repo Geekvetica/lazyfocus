@@ -285,19 +285,35 @@ func (m Model) validate() string {
 func (m Model) buildModification() domain.TaskModification {
 	mod := domain.TaskModification{}
 
-	// Name
+	m.buildNameModification(&mod)
+	m.buildNoteModification(&mod)
+	m.buildProjectModification(&mod)
+	m.buildTagsModification(&mod)
+	m.buildDueDateModification(&mod)
+	m.buildDeferDateModification(&mod)
+	m.buildFlaggedModification(&mod)
+
+	return mod
+}
+
+// buildNameModification adds name modification if changed
+func (m Model) buildNameModification(mod *domain.TaskModification) {
 	newName := strings.TrimSpace(m.inputs[FieldName].Value())
 	if newName != m.task.Name {
 		mod.Name = &newName
 	}
+}
 
-	// Note
+// buildNoteModification adds note modification if changed
+func (m Model) buildNoteModification(mod *domain.TaskModification) {
 	newNote := strings.TrimSpace(m.inputs[FieldNote].Value())
 	if newNote != m.task.Note {
 		mod.Note = &newNote
 	}
+}
 
-	// Project
+// buildProjectModification adds project modification if changed
+func (m Model) buildProjectModification(mod *domain.TaskModification) {
 	newProject := strings.TrimSpace(m.inputs[FieldProject].Value())
 	if newProject != m.task.ProjectName {
 		if newProject == "" {
@@ -309,8 +325,10 @@ func (m Model) buildModification() domain.TaskModification {
 			mod.ProjectID = &newProject
 		}
 	}
+}
 
-	// Tags - compare and build add/remove lists
+// buildTagsModification adds tag modifications (add/remove) if changed
+func (m Model) buildTagsModification(mod *domain.TaskModification) {
 	currentTagNames := make(map[string]bool)
 	for _, tagName := range m.task.Tags {
 		currentTagNames[strings.ToLower(tagName)] = true
@@ -340,8 +358,10 @@ func (m Model) buildModification() domain.TaskModification {
 			mod.RemoveTags = append(mod.RemoveTags, tagName)
 		}
 	}
+}
 
-	// Due date
+// buildDueDateModification adds due date modification if changed
+func (m Model) buildDueDateModification(mod *domain.TaskModification) {
 	dueStr := strings.TrimSpace(m.inputs[FieldDueDate].Value())
 	if dueStr == "" && m.task.DueDate != nil {
 		mod.ClearDue = true
@@ -350,8 +370,10 @@ func (m Model) buildModification() domain.TaskModification {
 			mod.DueDate = &dueDate
 		}
 	}
+}
 
-	// Defer date
+// buildDeferDateModification adds defer date modification if changed
+func (m Model) buildDeferDateModification(mod *domain.TaskModification) {
 	deferStr := strings.TrimSpace(m.inputs[FieldDeferDate].Value())
 	if deferStr == "" && m.task.DeferDate != nil {
 		mod.ClearDefer = true
@@ -360,13 +382,13 @@ func (m Model) buildModification() domain.TaskModification {
 			mod.DeferDate = &deferDate
 		}
 	}
+}
 
-	// Flagged
+// buildFlaggedModification adds flagged modification if changed
+func (m Model) buildFlaggedModification(mod *domain.TaskModification) {
 	if m.flagged != m.task.Flagged {
 		mod.Flagged = &m.flagged
 	}
-
-	return mod
 }
 
 // View renders the overlay

@@ -17,6 +17,7 @@ import (
 // DueGroup represents a group of tasks by due date category
 type DueGroup int
 
+// DueGroup constants for grouping tasks by due date category.
 const (
 	GroupOverdue DueGroup = iota
 	GroupToday
@@ -135,15 +136,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 // nextSelectableIndex finds the next selectable item (skips headers optionally)
 func (m Model) nextSelectableIndex(current, direction int) int {
 	next := current + direction
-	for {
-		if next < 0 {
-			next = len(m.items) - 1
-		} else if next >= len(m.items) {
-			next = 0
-		}
-		// Allow selecting headers for collapse toggle
-		break
+	if next < 0 {
+		next = len(m.items) - 1
+	} else if next >= len(m.items) {
+		next = 0
 	}
+	// Allow selecting headers for collapse toggle
 	return next
 }
 

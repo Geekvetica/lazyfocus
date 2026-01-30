@@ -62,7 +62,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestTagsAndCountsLoadedMsg(t *testing.T) {
+func TestLoadedWithCountsMsg(t *testing.T) {
 	styles := tui.DefaultStyles()
 	keys := tui.DefaultKeyMap()
 	svc := &MockService{
@@ -71,10 +71,10 @@ func TestTagsAndCountsLoadedMsg(t *testing.T) {
 	}
 
 	m := New(styles, keys, svc)
-	m, _ = m.Update(TagsAndCountsLoadedMsg{Tags: svc.tags, Counts: svc.counts})
+	m, _ = m.Update(LoadedWithCountsMsg{Tags: svc.tags, Counts: svc.counts})
 
 	if !m.loaded {
-		t.Error("should be loaded after TagsAndCountsLoadedMsg")
+		t.Error("should be loaded after LoadedWithCountsMsg")
 	}
 }
 
@@ -88,7 +88,7 @@ func TestEnterKey_DrillsDown(t *testing.T) {
 	}
 
 	m := New(styles, keys, svc)
-	m, _ = m.Update(TagsAndCountsLoadedMsg{Tags: svc.tags, Counts: svc.counts})
+	m, _ = m.Update(LoadedWithCountsMsg{Tags: svc.tags, Counts: svc.counts})
 
 	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
@@ -112,7 +112,7 @@ func TestBackKey_ReturnsToList(t *testing.T) {
 	}
 
 	m := New(styles, keys, svc)
-	m, _ = m.Update(TagsAndCountsLoadedMsg{Tags: svc.tags, Counts: svc.counts})
+	m, _ = m.Update(LoadedWithCountsMsg{Tags: svc.tags, Counts: svc.counts})
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'h'}})
@@ -135,7 +135,7 @@ func TestHierarchicalTags(t *testing.T) {
 	}
 
 	m := New(styles, keys, svc)
-	m, _ = m.Update(TagsAndCountsLoadedMsg{Tags: svc.tags, Counts: svc.counts})
+	m, _ = m.Update(LoadedWithCountsMsg{Tags: svc.tags, Counts: svc.counts})
 
 	// Should have 2 tags in flattened list
 	tags := m.tagList.Tags()
@@ -159,7 +159,7 @@ func TestSelectedTask_InTaskMode(t *testing.T) {
 	}
 
 	m := New(styles, keys, svc)
-	m, _ = m.Update(TagsAndCountsLoadedMsg{Tags: svc.tags, Counts: svc.counts})
+	m, _ = m.Update(LoadedWithCountsMsg{Tags: svc.tags, Counts: svc.counts})
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m, _ = m.Update(tui.TasksLoadedMsg{Tasks: svc.tasks})
 

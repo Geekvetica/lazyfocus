@@ -172,7 +172,7 @@ func TestUpdate_NotVisible_IgnoresInput(t *testing.T) {
 	m := New(styles, keys) // Not visible
 
 	keyMsg := tea.KeyMsg{Type: tea.KeyEscape}
-	m, cmd := m.Update(keyMsg)
+	_, cmd := m.Update(keyMsg)
 
 	if cmd != nil {
 		t.Error("should not return command when not visible")

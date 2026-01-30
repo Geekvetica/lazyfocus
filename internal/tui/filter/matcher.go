@@ -1,3 +1,4 @@
+// Package filter provides task filtering functionality for the TUI.
 package filter
 
 import (

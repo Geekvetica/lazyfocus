@@ -97,80 +97,107 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, escapeKey):
-			m = m.Hide()
-			return m, func() tea.Msg { return CommandCancelledMsg{} }
-
-		case key.Matches(msg, enterKey):
-			input := m.input.Value()
-			if input != "" {
-				// Add to history
-				m.history = append(m.history, input)
-
-				// Parse and execute
-				cmd, err := m.parser.Parse(input)
-				if err != nil {
-					m = m.Hide()
-					errStr := err.Error()
-					return m, func() tea.Msg { return CommandErrorMsg{Error: errStr} }
-				}
-
-				m = m.Hide()
-				return m, func() tea.Msg { return CommandExecutedMsg{Command: cmd} }
-			}
-			m = m.Hide()
-			return m, func() tea.Msg { return CommandCancelledMsg{} }
-
-		case key.Matches(msg, upKey):
-			// Navigate history backward
-			if len(m.history) > 0 {
-				if m.historyIdx < 0 {
-					m.historyIdx = len(m.history) - 1
-				} else if m.historyIdx > 0 {
-					m.historyIdx--
-				}
-				m.input.SetValue(m.history[m.historyIdx])
-				m.input.CursorEnd()
-			}
-			return m, nil
-
-		case key.Matches(msg, downKey):
-			// Navigate history forward
-			if m.historyIdx >= 0 {
-				m.historyIdx++
-				if m.historyIdx >= len(m.history) {
-					m.historyIdx = -1
-					m.input.SetValue("")
-				} else {
-					m.input.SetValue(m.history[m.historyIdx])
-					m.input.CursorEnd()
-				}
-			}
-			return m, nil
-
-		case key.Matches(msg, tabKey):
-			// Tab completion
-			text := m.input.Value()
-			completions := m.parser.GetCompletions(text)
-			if len(completions) == 1 {
-				m.input.SetValue(completions[0])
-				m.input.CursorEnd()
-			} else if len(completions) > 1 {
-				// Cycle through completions
-				m.completions = completions
-				m.compIdx = (m.compIdx + 1) % len(completions)
-				m.input.SetValue(completions[m.compIdx])
-				m.input.CursorEnd()
-			}
-			return m, nil
-		}
+		return m.handleKeyMsg(msg)
 	}
 
 	// Update text input
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
 	return m, cmd
+}
+
+// handleKeyMsg handles key press messages
+func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, escapeKey):
+		m = m.Hide()
+		return m, func() tea.Msg { return CommandCancelledMsg{} }
+
+	case key.Matches(msg, enterKey):
+		return m.handleEnterKey()
+
+	case key.Matches(msg, upKey):
+		return m.handleHistoryUp()
+
+	case key.Matches(msg, downKey):
+		return m.handleHistoryDown()
+
+	case key.Matches(msg, tabKey):
+		return m.handleTabCompletion()
+	}
+
+	// Update text input for other keys
+	var cmd tea.Cmd
+	m.input, cmd = m.input.Update(msg)
+	return m, cmd
+}
+
+// handleEnterKey processes the enter key (command execution)
+func (m Model) handleEnterKey() (Model, tea.Cmd) {
+	input := m.input.Value()
+	if input != "" {
+		// Add to history
+		m.history = append(m.history, input)
+
+		// Parse and execute
+		cmd, err := m.parser.Parse(input)
+		if err != nil {
+			m = m.Hide()
+			errStr := err.Error()
+			return m, func() tea.Msg { return CommandErrorMsg{Error: errStr} }
+		}
+
+		m = m.Hide()
+		return m, func() tea.Msg { return CommandExecutedMsg{Command: cmd} }
+	}
+	m = m.Hide()
+	return m, func() tea.Msg { return CommandCancelledMsg{} }
+}
+
+// handleHistoryUp navigates history backward
+func (m Model) handleHistoryUp() (Model, tea.Cmd) {
+	if len(m.history) > 0 {
+		if m.historyIdx < 0 {
+			m.historyIdx = len(m.history) - 1
+		} else if m.historyIdx > 0 {
+			m.historyIdx--
+		}
+		m.input.SetValue(m.history[m.historyIdx])
+		m.input.CursorEnd()
+	}
+	return m, nil
+}
+
+// handleHistoryDown navigates history forward
+func (m Model) handleHistoryDown() (Model, tea.Cmd) {
+	if m.historyIdx >= 0 {
+		m.historyIdx++
+		if m.historyIdx >= len(m.history) {
+			m.historyIdx = -1
+			m.input.SetValue("")
+		} else {
+			m.input.SetValue(m.history[m.historyIdx])
+			m.input.CursorEnd()
+		}
+	}
+	return m, nil
+}
+
+// handleTabCompletion performs tab completion
+func (m Model) handleTabCompletion() (Model, tea.Cmd) {
+	text := m.input.Value()
+	completions := m.parser.GetCompletions(text)
+	if len(completions) == 1 {
+		m.input.SetValue(completions[0])
+		m.input.CursorEnd()
+	} else if len(completions) > 1 {
+		// Cycle through completions
+		m.completions = completions
+		m.compIdx = (m.compIdx + 1) % len(completions)
+		m.input.SetValue(completions[m.compIdx])
+		m.input.CursorEnd()
+	}
+	return m, nil
 }
 
 // View renders the command input

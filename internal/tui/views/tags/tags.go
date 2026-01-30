@@ -17,13 +17,14 @@ import (
 // ViewMode represents whether we're viewing tags or a tag's tasks
 type ViewMode int
 
+// ViewMode constants for tags view mode.
 const (
 	ModeTagList ViewMode = iota
 	ModeTagTasks
 )
 
-// TagsAndCountsLoadedMsg is sent when tags and counts are loaded
-type TagsAndCountsLoadedMsg struct {
+// LoadedWithCountsMsg is sent when tags and counts are loaded
+type LoadedWithCountsMsg struct {
 	Tags   []domain.Tag
 	Counts map[string]int
 }
@@ -71,7 +72,7 @@ func (m Model) loadTagsAndCounts() tea.Cmd {
 		if err != nil {
 			return tui.ErrorMsg{Err: err}
 		}
-		return TagsAndCountsLoadedMsg{Tags: tags, Counts: counts}
+		return LoadedWithCountsMsg{Tags: tags, Counts: counts}
 	}
 }
 
@@ -88,7 +89,7 @@ func (m Model) loadTagTasks(tagID string) tea.Cmd {
 // Update handles messages
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case TagsAndCountsLoadedMsg:
+	case LoadedWithCountsMsg:
 		m.tagList = m.tagList.SetTags(msg.Tags, msg.Counts)
 		m.loaded = true
 		m.err = nil

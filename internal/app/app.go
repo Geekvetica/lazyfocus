@@ -131,35 +131,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Handle window resize
 	if msg, ok := msg.(tea.WindowSizeMsg); ok {
-		m.width = msg.Width
-		m.height = msg.Height
-		m.ready = true
-
-		// Update compositor dimensions
-		m.compositor.SetSize(msg.Width, msg.Height)
-
-		// Update all overlays
-		m.quickAdd = m.quickAdd.SetSize(msg.Width, msg.Height)
-		m.taskDetail = m.taskDetail.SetSize(msg.Width, msg.Height)
-		m.taskEdit = m.taskEdit.SetSize(msg.Width, msg.Height)
-		m.confirmModal = m.confirmModal.SetSize(msg.Width, msg.Height)
-		m.searchInput = m.searchInput.SetWidth(msg.Width)
-		m.commandInput = m.commandInput.SetWidth(msg.Width)
-
-		// Pass resize to all views
-		var cmds []tea.Cmd
-		var cmd tea.Cmd
-		m.inboxView, cmd = m.inboxView.Update(msg)
-		cmds = append(cmds, cmd)
-		m.projectsView, cmd = m.projectsView.Update(msg)
-		cmds = append(cmds, cmd)
-		m.tagsView, cmd = m.tagsView.Update(msg)
-		cmds = append(cmds, cmd)
-		m.forecastView, cmd = m.forecastView.Update(msg)
-		cmds = append(cmds, cmd)
-		m.reviewView, cmd = m.reviewView.Update(msg)
-		cmds = append(cmds, cmd)
-		return m, tea.Batch(cmds...)
+		return m.handleWindowResize(msg)
 	}
 
 	// Handle TaskCreatedMsg - hide quick add and refresh view
@@ -178,63 +150,157 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Handle overlays in priority order (highest to lowest)
+	if newModel, cmd, handled := m.handleOverlays(msg); handled {
+		return newModel, cmd
+	}
+
+	// Handle custom messages
+	if newModel, cmd, handled := m.handleCustomMessages(msg); handled {
+		return newModel, cmd
+	}
+
+	// Handle global keys when overlay is not visible
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		return m.handleKeyMsg(keyMsg)
+	}
+
+	// Delegate to current view
+	return m.delegateToCurrentView(msg)
+}
+
+// handleWindowResize handles tea.WindowSizeMsg
+func (m Model) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.ready = true
+
+	// Update compositor dimensions
+	m.compositor.SetSize(msg.Width, msg.Height)
+
+	// Update all overlays
+	m.quickAdd = m.quickAdd.SetSize(msg.Width, msg.Height)
+	m.taskDetail = m.taskDetail.SetSize(msg.Width, msg.Height)
+	m.taskEdit = m.taskEdit.SetSize(msg.Width, msg.Height)
+	m.confirmModal = m.confirmModal.SetSize(msg.Width, msg.Height)
+	m.searchInput = m.searchInput.SetWidth(msg.Width)
+	m.commandInput = m.commandInput.SetWidth(msg.Width)
+
+	// Pass resize to all views
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
+	m.inboxView, cmd = m.inboxView.Update(msg)
+	cmds = append(cmds, cmd)
+	m.projectsView, cmd = m.projectsView.Update(msg)
+	cmds = append(cmds, cmd)
+	m.tagsView, cmd = m.tagsView.Update(msg)
+	cmds = append(cmds, cmd)
+	m.forecastView, cmd = m.forecastView.Update(msg)
+	cmds = append(cmds, cmd)
+	m.reviewView, cmd = m.reviewView.Update(msg)
+	cmds = append(cmds, cmd)
+	return m, tea.Batch(cmds...)
+}
+
+// handleOverlays delegates messages to visible overlays
+// Returns the updated model, command, and true if an overlay handled the message
+func (m Model) handleOverlays(msg tea.Msg) (Model, tea.Cmd, bool) {
 	// 1. Confirm modal (highest - blocking)
 	if m.confirmModal.IsVisible() {
 		var cmd tea.Cmd
 		m.confirmModal, cmd = m.confirmModal.Update(msg)
-		return m, cmd
+		return m, cmd, true
 	}
 
 	// 2. Task edit overlay
 	if m.taskEdit.IsVisible() {
 		var cmd tea.Cmd
 		m.taskEdit, cmd = m.taskEdit.Update(msg)
-		return m, cmd
+		return m, cmd, true
 	}
 
 	// 3. Task detail overlay
 	if m.taskDetail.IsVisible() {
 		var cmd tea.Cmd
 		m.taskDetail, cmd = m.taskDetail.Update(msg)
-		return m, cmd
+		return m, cmd, true
 	}
 
 	// 4. Quick add overlay
 	if m.quickAdd.IsVisible() {
 		var cmd tea.Cmd
 		m.quickAdd, cmd = m.quickAdd.Update(msg)
-		return m, cmd
+		return m, cmd, true
 	}
 
 	// 5. Search input
 	if m.searchInput.IsVisible() {
 		var cmd tea.Cmd
 		m.searchInput, cmd = m.searchInput.Update(msg)
-		return m, cmd
+		return m, cmd, true
 	}
 
 	// 6. Command input
 	if m.commandInput.IsVisible() {
 		var cmd tea.Cmd
 		m.commandInput, cmd = m.commandInput.Update(msg)
-		return m, cmd
+		return m, cmd, true
 	}
 
+	return m, nil, false
+}
+
+// handleCustomMessages handles custom message types from components
+// Returns the updated model, command, and true if message was handled
+func (m Model) handleCustomMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
 	// Handle task detail action messages
+	if newModel, cmd, handled := m.handleTaskDetailMessages(msg); handled {
+		return newModel, cmd, true
+	}
+
+	// Handle task edit messages
+	if newModel, cmd, handled := m.handleTaskEditMessages(msg); handled {
+		return newModel, cmd, true
+	}
+
+	// Handle search input messages
+	if newModel, cmd, handled := m.handleSearchInputMessages(msg); handled {
+		return newModel, cmd, true
+	}
+
+	// Handle command input messages
+	if newModel, cmd, handled := m.handleCommandInputMessages(msg); handled {
+		return newModel, cmd, true
+	}
+
+	// Handle confirm messages
+	if newModel, cmd, handled := m.handleConfirmMessages(msg); handled {
+		return newModel, cmd, true
+	}
+
+	// Handle task operation messages
+	if newModel, cmd, handled := m.handleTaskOperationMessages(msg); handled {
+		return newModel, cmd, true
+	}
+
+	return m, nil, false
+}
+
+// handleTaskDetailMessages handles task detail related messages
+func (m Model) handleTaskDetailMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
 	if _, ok := msg.(taskdetail.CloseMsg); ok {
 		m.taskDetail = m.taskDetail.Hide()
-		return m, nil
+		return m, nil, true
 	}
 
 	if editMsg, ok := msg.(taskdetail.EditRequestedMsg); ok {
 		m.taskDetail = m.taskDetail.Hide()
 		m.taskEdit = m.taskEdit.Show(&editMsg.Task)
-		return m, nil
+		return m, nil, true
 	}
 
 	if completeMsg, ok := msg.(taskdetail.CompleteRequestedMsg); ok {
 		m.taskDetail = m.taskDetail.Hide()
-		return m, m.completeTask(completeMsg.TaskID)
+		return m, m.completeTask(completeMsg.TaskID), true
 	}
 
 	if deleteMsg, ok := msg.(taskdetail.DeleteRequestedMsg); ok {
@@ -245,191 +311,218 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			fmt.Sprintf("Delete \"%s\"?", deleteMsg.TaskName),
 			ctx,
 		)
-		return m, nil
+		return m, nil, true
 	}
 
 	if _, ok := msg.(taskdetail.FlagRequestedMsg); ok {
 		m.taskDetail = m.taskDetail.Hide()
 		task := m.taskDetail.Task()
 		if task != nil {
+			return m, m.toggleTaskFlag(task), true
+		}
+		return m, nil, true
+	}
+
+	return m, nil, false
+}
+
+// handleTaskEditMessages handles task edit related messages
+func (m Model) handleTaskEditMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
+	if saveMsg, ok := msg.(taskedit.SaveMsg); ok {
+		m.taskEdit = m.taskEdit.Hide()
+		return m, m.modifyTask(saveMsg.TaskID, saveMsg.Modification), true
+	}
+
+	if _, ok := msg.(taskedit.CancelMsg); ok {
+		m.taskEdit = m.taskEdit.Hide()
+		return m, nil, true
+	}
+
+	return m, nil, false
+}
+
+// handleSearchInputMessages handles search input related messages
+func (m Model) handleSearchInputMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
+	if searchMsg, ok := msg.(searchinput.SearchChangedMsg); ok {
+		m.filterState = m.filterState.WithSearchText(searchMsg.Text)
+		return m, nil, true
+	}
+
+	if _, ok := msg.(searchinput.SearchClearedMsg); ok {
+		m.filterState = m.filterState.Clear()
+		return m, m.refreshCurrentView(), true
+	}
+
+	if searchMsg, ok := msg.(searchinput.SearchConfirmedMsg); ok {
+		m.filterState = m.filterState.WithSearchText(searchMsg.Text)
+		return m, m.refreshCurrentView(), true
+	}
+
+	return m, nil, false
+}
+
+// handleCommandInputMessages handles command input related messages
+func (m Model) handleCommandInputMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
+	if cmdMsg, ok := msg.(commandinput.CommandExecutedMsg); ok {
+		newModel, cmd := m.executeCommand(cmdMsg.Command)
+		return newModel, cmd, true
+	}
+
+	if _, ok := msg.(commandinput.CommandCancelledMsg); ok {
+		return m, nil, true
+	}
+
+	if errMsg, ok := msg.(commandinput.CommandErrorMsg); ok {
+		m.err = fmt.Errorf("%s", errMsg.Error)
+		return m, nil, true
+	}
+
+	return m, nil, false
+}
+
+// handleConfirmMessages handles confirmation modal messages
+func (m Model) handleConfirmMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
+	if msg, ok := msg.(confirm.ConfirmedMsg); ok {
+		if ctx, ok := msg.Context.(DeleteContext); ok {
+			return m, m.deleteTask(ctx.TaskID), true
+		}
+		return m, nil, true
+	}
+
+	return m, nil, false
+}
+
+// handleTaskOperationMessages handles task operation result messages
+func (m Model) handleTaskOperationMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
+	if _, ok := msg.(tui.TaskCompletedMsg); ok {
+		return m, m.refreshCurrentView(), true
+	}
+
+	if _, ok := msg.(tui.TaskDeletedMsg); ok {
+		return m, m.refreshCurrentView(), true
+	}
+
+	if _, ok := msg.(tui.TaskModifiedMsg); ok {
+		return m, m.refreshCurrentView(), true
+	}
+
+	return m, nil, false
+}
+
+// handleKeyMsg handles global key messages
+func (m Model) handleKeyMsg(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Toggle help
+	if key.Matches(keyMsg, m.keys.Help) {
+		m.showHelp = !m.showHelp
+		return m, nil
+	}
+
+	// Show quick add
+	if key.Matches(keyMsg, m.keys.QuickAdd) {
+		m.quickAdd = m.quickAdd.Show()
+		return m, nil
+	}
+
+	// Show task detail on Enter
+	if keyMsg.String() == "enter" {
+		task := m.getSelectedTask()
+		if task != nil {
+			m.taskDetail = m.taskDetail.Show(task)
+			return m, nil
+		}
+	}
+
+	// Show edit task overlay
+	if key.Matches(keyMsg, m.keys.Edit) {
+		task := m.getSelectedTask()
+		if task != nil {
+			m.taskEdit = m.taskEdit.Show(task)
+			return m, nil
+		}
+		return m, nil
+	}
+
+	// Delete task - show confirmation
+	if key.Matches(keyMsg, m.keys.Delete) {
+		task := m.getSelectedTask()
+		if task != nil {
+			ctx := DeleteContext{TaskID: task.ID, TaskName: task.Name}
+			m.confirmModal = m.confirmModal.ShowWithContext(
+				"Delete Task",
+				fmt.Sprintf("Delete \"%s\"?", task.Name),
+				ctx,
+			)
+		}
+		return m, nil
+	}
+
+	// Toggle flag - immediate action (no confirmation)
+	if key.Matches(keyMsg, m.keys.Flag) {
+		task := m.getSelectedTask()
+		if task != nil {
 			return m, m.toggleTaskFlag(task)
 		}
 		return m, nil
 	}
 
-	// Handle task edit messages
-	if saveMsg, ok := msg.(taskedit.SaveMsg); ok {
-		m.taskEdit = m.taskEdit.Hide()
-		return m, m.modifyTask(saveMsg.TaskID, saveMsg.Modification)
-	}
-
-	if _, ok := msg.(taskedit.CancelMsg); ok {
-		m.taskEdit = m.taskEdit.Hide()
+	// Show search input
+	if keyMsg.String() == "/" {
+		m.searchInput = m.searchInput.Show()
 		return m, nil
 	}
 
-	// Handle search input messages
-	if searchMsg, ok := msg.(searchinput.SearchChangedMsg); ok {
-		m.filterState = m.filterState.WithSearchText(searchMsg.Text)
-		// Apply filter to current view - for now just store it
-		// Views will need to be updated to respect filterState
+	// Show command input
+	if keyMsg.String() == ":" {
+		m.commandInput = m.commandInput.Show()
 		return m, nil
 	}
 
-	if _, ok := msg.(searchinput.SearchClearedMsg); ok {
-		m.filterState = m.filterState.Clear()
-		return m, m.refreshCurrentView()
-	}
+	// Handle view switching
+	return m.handleViewSwitching(keyMsg)
+}
 
-	if searchMsg, ok := msg.(searchinput.SearchConfirmedMsg); ok {
-		m.filterState = m.filterState.WithSearchText(searchMsg.Text)
-		return m, m.refreshCurrentView()
-	}
-
-	// Handle command input messages
-	if cmdMsg, ok := msg.(commandinput.CommandExecutedMsg); ok {
-		return m.executeCommand(cmdMsg.Command)
-	}
-
-	if _, ok := msg.(commandinput.CommandCancelledMsg); ok {
-		return m, nil
-	}
-
-	if errMsg, ok := msg.(commandinput.CommandErrorMsg); ok {
-		m.err = fmt.Errorf("%s", errMsg.Error)
-		return m, nil
-	}
-
-	// Handle confirm.ConfirmedMsg - user confirmed deletion
-	if msg, ok := msg.(confirm.ConfirmedMsg); ok {
-		if ctx, ok := msg.Context.(DeleteContext); ok {
-			return m, m.deleteTask(ctx.TaskID)
+// handleViewSwitching handles view switching key presses
+func (m Model) handleViewSwitching(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if key.Matches(keyMsg, m.keys.View1) {
+		if m.currentView != tui.ViewInbox {
+			m.currentView = tui.ViewInbox
+			return m, m.inboxView.Init()
 		}
 		return m, nil
 	}
-
-	// Handle TaskCompletedMsg - refresh view after completion
-	if _, ok := msg.(tui.TaskCompletedMsg); ok {
-		return m, m.refreshCurrentView()
+	if key.Matches(keyMsg, m.keys.View2) {
+		if m.currentView != tui.ViewProjects {
+			m.currentView = tui.ViewProjects
+			return m, m.projectsView.Init()
+		}
+		return m, nil
 	}
-
-	// Handle TaskDeletedMsg - refresh view after deletion
-	if _, ok := msg.(tui.TaskDeletedMsg); ok {
-		return m, m.refreshCurrentView()
+	if key.Matches(keyMsg, m.keys.View3) {
+		if m.currentView != tui.ViewTags {
+			m.currentView = tui.ViewTags
+			return m, m.tagsView.Init()
+		}
+		return m, nil
 	}
-
-	// Handle TaskModifiedMsg - refresh view after modification
-	if _, ok := msg.(tui.TaskModifiedMsg); ok {
-		return m, m.refreshCurrentView()
+	if key.Matches(keyMsg, m.keys.View4) {
+		if m.currentView != tui.ViewForecast {
+			m.currentView = tui.ViewForecast
+			return m, m.forecastView.Init()
+		}
+		return m, nil
 	}
-
-	// Handle global keys when overlay is not visible
-	if keyMsg, ok := msg.(tea.KeyMsg); ok {
-		// Toggle help
-		if key.Matches(keyMsg, m.keys.Help) {
-			m.showHelp = !m.showHelp
-			return m, nil
+	if key.Matches(keyMsg, m.keys.View5) {
+		if m.currentView != tui.ViewReview {
+			m.currentView = tui.ViewReview
+			return m, m.reviewView.Init()
 		}
-
-		// Show quick add
-		if key.Matches(keyMsg, m.keys.QuickAdd) {
-			m.quickAdd = m.quickAdd.Show()
-			return m, nil
-		}
-
-		// Show task detail on Enter
-		if keyMsg.String() == "enter" {
-			task := m.getSelectedTask()
-			if task != nil {
-				m.taskDetail = m.taskDetail.Show(task)
-				return m, nil
-			}
-		}
-
-		// Show edit task overlay
-		if key.Matches(keyMsg, m.keys.Edit) {
-			task := m.getSelectedTask()
-			if task != nil {
-				m.taskEdit = m.taskEdit.Show(task)
-				return m, nil
-			}
-			return m, nil
-		}
-
-		// Delete task - show confirmation
-		if key.Matches(keyMsg, m.keys.Delete) {
-			task := m.getSelectedTask()
-			if task != nil {
-				ctx := DeleteContext{TaskID: task.ID, TaskName: task.Name}
-				m.confirmModal = m.confirmModal.ShowWithContext(
-					"Delete Task",
-					fmt.Sprintf("Delete \"%s\"?", task.Name),
-					ctx,
-				)
-			}
-			return m, nil
-		}
-
-		// Toggle flag - immediate action (no confirmation)
-		if key.Matches(keyMsg, m.keys.Flag) {
-			task := m.getSelectedTask()
-			if task != nil {
-				return m, m.toggleTaskFlag(task)
-			}
-			return m, nil
-		}
-
-		// Show search input
-		if keyMsg.String() == "/" {
-			m.searchInput = m.searchInput.Show()
-			return m, nil
-		}
-
-		// Show command input
-		if keyMsg.String() == ":" {
-			m.commandInput = m.commandInput.Show()
-			return m, nil
-		}
-
-		// View switching
-		if key.Matches(keyMsg, m.keys.View1) {
-			if m.currentView != tui.ViewInbox {
-				m.currentView = tui.ViewInbox
-				return m, m.inboxView.Init()
-			}
-			return m, nil
-		}
-		if key.Matches(keyMsg, m.keys.View2) {
-			if m.currentView != tui.ViewProjects {
-				m.currentView = tui.ViewProjects
-				return m, m.projectsView.Init()
-			}
-			return m, nil
-		}
-		if key.Matches(keyMsg, m.keys.View3) {
-			if m.currentView != tui.ViewTags {
-				m.currentView = tui.ViewTags
-				return m, m.tagsView.Init()
-			}
-			return m, nil
-		}
-		if key.Matches(keyMsg, m.keys.View4) {
-			if m.currentView != tui.ViewForecast {
-				m.currentView = tui.ViewForecast
-				return m, m.forecastView.Init()
-			}
-			return m, nil
-		}
-		if key.Matches(keyMsg, m.keys.View5) {
-			if m.currentView != tui.ViewReview {
-				m.currentView = tui.ViewReview
-				return m, m.reviewView.Init()
-			}
-			return m, nil
-		}
+		return m, nil
 	}
+	return m, nil
+}
 
-	// Delegate to current view
+// delegateToCurrentView delegates messages to the current view
+func (m Model) delegateToCurrentView(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch m.currentView {
 	case tui.ViewInbox:
@@ -714,96 +807,125 @@ func (m Model) executeCommand(cmd *command.Command) (Model, tea.Cmd) {
 	switch cmd.Name {
 	case "quit":
 		return m, tea.Quit
-
 	case "refresh":
 		return m, m.refreshCurrentView()
-
 	case "add":
-		// Open quick add with args if provided
-		if len(cmd.Args) > 0 {
-			_ = strings.Join(cmd.Args, " ") // taskText for future pre-fill feature
-			m.quickAdd = m.quickAdd.Show()
-			// TODO: Pre-fill quick add with taskText
-			// This would require adding a method to quickadd component
-		} else {
-			m.quickAdd = m.quickAdd.Show()
-		}
-		return m, nil
-
+		return m.executeAddCommand(cmd)
 	case "complete":
-		task := m.getSelectedTask()
-		if task != nil {
-			return m, m.completeTask(task.ID)
-		}
-		return m, nil
-
+		return m.executeCompleteCommand()
 	case "delete":
-		task := m.getSelectedTask()
-		if task != nil {
-			ctx := DeleteContext{TaskID: task.ID, TaskName: task.Name}
-			m.confirmModal = m.confirmModal.ShowWithContext(
-				"Delete Task",
-				fmt.Sprintf("Delete \"%s\"?", task.Name),
-				ctx,
-			)
-		}
-		return m, nil
-
+		return m.executeDeleteCommand()
 	case "project":
-		if len(cmd.Args) > 0 {
-			projectName := strings.Join(cmd.Args, " ")
-			// TODO: Resolve project name to ID
-			// For now just store the name as filter
-			_ = projectName
-			// m.filterState = m.filterState.WithProject(projectID)
-			// return m, m.refreshCurrentView()
-		}
-		return m, nil
-
+		return m.executeProjectCommand(cmd)
 	case "tag":
-		if len(cmd.Args) > 0 {
-			tagName := strings.Join(cmd.Args, " ")
-			// TODO: Resolve tag name to ID
-			_ = tagName
-			// m.filterState = m.filterState.WithTag(tagID)
-			// return m, m.refreshCurrentView()
-		}
-		return m, nil
-
+		return m.executeTagCommand(cmd)
 	case "due":
-		if len(cmd.Args) > 0 {
-			dueFilter := cmd.Args[0]
-			var df filter.DueFilter
-			switch strings.ToLower(dueFilter) {
-			case "today":
-				df = filter.DueToday
-			case "tomorrow":
-				df = filter.DueTomorrow
-			case "week":
-				df = filter.DueWeek
-			case "overdue":
-				df = filter.DueOverdue
-			default:
-				df = filter.DueNone
-			}
-			m.filterState = m.filterState.WithDueFilter(df)
-			return m, m.refreshCurrentView()
-		}
-		return m, nil
-
+		return m.executeDueCommand(cmd)
 	case "flagged":
-		m.filterState = m.filterState.WithFlaggedOnly(true)
-		return m, m.refreshCurrentView()
-
+		return m.executeFlaggedCommand()
 	case "clear":
-		m.filterState = m.filterState.Clear()
-		return m, m.refreshCurrentView()
-
+		return m.executeClearCommand()
 	case "help":
 		m.showHelp = !m.showHelp
 		return m, nil
-
 	default:
 		return m, nil
 	}
+}
+
+// executeAddCommand handles the "add" command
+func (m Model) executeAddCommand(cmd *command.Command) (Model, tea.Cmd) {
+	// Open quick add with args if provided
+	if len(cmd.Args) > 0 {
+		_ = strings.Join(cmd.Args, " ") // taskText for future pre-fill feature
+		m.quickAdd = m.quickAdd.Show()
+		// TODO: Pre-fill quick add with taskText
+		// This would require adding a method to quickadd component
+	} else {
+		m.quickAdd = m.quickAdd.Show()
+	}
+	return m, nil
+}
+
+// executeCompleteCommand handles the "complete" command
+func (m Model) executeCompleteCommand() (Model, tea.Cmd) {
+	task := m.getSelectedTask()
+	if task != nil {
+		return m, m.completeTask(task.ID)
+	}
+	return m, nil
+}
+
+// executeDeleteCommand handles the "delete" command
+func (m Model) executeDeleteCommand() (Model, tea.Cmd) {
+	task := m.getSelectedTask()
+	if task != nil {
+		ctx := DeleteContext{TaskID: task.ID, TaskName: task.Name}
+		m.confirmModal = m.confirmModal.ShowWithContext(
+			"Delete Task",
+			fmt.Sprintf("Delete \"%s\"?", task.Name),
+			ctx,
+		)
+	}
+	return m, nil
+}
+
+// executeProjectCommand handles the "project" command
+func (m Model) executeProjectCommand(cmd *command.Command) (Model, tea.Cmd) {
+	if len(cmd.Args) > 0 {
+		projectName := strings.Join(cmd.Args, " ")
+		// TODO: Resolve project name to ID
+		// For now just store the name as filter
+		_ = projectName
+		// m.filterState = m.filterState.WithProject(projectID)
+		// return m, m.refreshCurrentView()
+	}
+	return m, nil
+}
+
+// executeTagCommand handles the "tag" command
+func (m Model) executeTagCommand(cmd *command.Command) (Model, tea.Cmd) {
+	if len(cmd.Args) > 0 {
+		tagName := strings.Join(cmd.Args, " ")
+		// TODO: Resolve tag name to ID
+		_ = tagName
+		// m.filterState = m.filterState.WithTag(tagID)
+		// return m, m.refreshCurrentView()
+	}
+	return m, nil
+}
+
+// executeDueCommand handles the "due" command
+func (m Model) executeDueCommand(cmd *command.Command) (Model, tea.Cmd) {
+	if len(cmd.Args) > 0 {
+		dueFilter := cmd.Args[0]
+		var df filter.DueFilter
+		switch strings.ToLower(dueFilter) {
+		case "today":
+			df = filter.DueToday
+		case "tomorrow":
+			df = filter.DueTomorrow
+		case "week":
+			df = filter.DueWeek
+		case "overdue":
+			df = filter.DueOverdue
+		default:
+			df = filter.DueNone
+		}
+		m.filterState = m.filterState.WithDueFilter(df)
+		return m, m.refreshCurrentView()
+	}
+	return m, nil
+}
+
+// executeFlaggedCommand handles the "flagged" command
+func (m Model) executeFlaggedCommand() (Model, tea.Cmd) {
+	m.filterState = m.filterState.WithFlaggedOnly(true)
+	return m, m.refreshCurrentView()
+}
+
+// executeClearCommand handles the "clear" command
+func (m Model) executeClearCommand() (Model, tea.Cmd) {
+	m.filterState = m.filterState.Clear()
+	return m, m.refreshCurrentView()
 }
