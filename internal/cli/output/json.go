@@ -70,6 +70,22 @@ func (f *JSONFormatter) FormatError(err error) string {
 	output := map[string]interface{}{
 		"error": err.Error(),
 	}
+
+	// Check if it's a LazyFocusError - need to import the errors package
+	// This is done via type assertion to avoid import cycle
+	type lazyFocusError interface {
+		error
+		ExitCode() int
+		Suggestion() string
+	}
+
+	if lfErr, ok := err.(lazyFocusError); ok {
+		output["code"] = lfErr.ExitCode()
+		if suggestion := lfErr.Suggestion(); suggestion != "" {
+			output["suggestion"] = suggestion
+		}
+	}
+
 	return f.marshal(output)
 }
 

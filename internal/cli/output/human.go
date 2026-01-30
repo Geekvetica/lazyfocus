@@ -128,9 +128,26 @@ func (f *HumanFormatter) FormatTag(tag domain.Tag) string {
 	return f.formatTagFlat(tag)
 }
 
-// FormatError formats an error message
+// FormatError formats an error message with suggestion if available
 func (f *HumanFormatter) FormatError(err error) string {
-	return fmt.Sprintf("Error: %s\n", err.Error())
+	var b strings.Builder
+
+	b.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+
+	// Check if it's a LazyFocusError with a suggestion
+	type lazyFocusError interface {
+		error
+		ExitCode() int
+		Suggestion() string
+	}
+
+	if lfErr, ok := err.(lazyFocusError); ok {
+		if suggestion := lfErr.Suggestion(); suggestion != "" {
+			b.WriteString(fmt.Sprintf("Suggestion: %s\n", suggestion))
+		}
+	}
+
+	return b.String()
 }
 
 // FormatCreatedTask formats a newly created task

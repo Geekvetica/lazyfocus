@@ -36,3 +36,6 @@ vendor/
 # Debug files
 *.log
 debug/
+
+# GoReleaser output
+dist/

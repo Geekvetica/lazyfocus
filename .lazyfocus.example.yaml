@@ -1,0 +1,41 @@
+# LazyFocus Configuration Example
+# Copy this file to ~/.lazyfocus.yaml to customize your settings
+
+# Output configuration
+output:
+  format: human  # Options: "human" or "json"
+
+# Timeout for OmniFocus operations
+timeout: 30s  # Examples: "30s", "1m", "90s"
+
+# Default values for commands
+defaults:
+  project: ""  # Default project for new tasks (empty = no default)
+
+# TUI (Terminal User Interface) configuration
+tui:
+  theme: default  # Theme name (currently only "default" is supported)
+
+  # Color customization
+  colors:
+    primary: "#5B9BD5"  # Primary accent color (blue)
+    flagged: "#ED7D31"  # Color for flagged items (orange)
+    due: "#70AD47"      # Color for due items (green)
+    overdue: "#FF6B6B"  # Color for overdue items (red)
+
+# Environment Variables
+# =====================
+# You can also set configuration via environment variables:
+#   LAZYFOCUS_OUTPUT_FORMAT=json
+#   LAZYFOCUS_TIMEOUT=60s
+#   LAZYFOCUS_DEFAULTS_PROJECT=Work
+#   LAZYFOCUS_TUI_COLORS_PRIMARY="#FF0000"
+#
+# Environment variables override config file values.
+# Command-line flags override both config file and environment variables.
+#
+# Priority (highest to lowest):
+#   1. Command-line flags (e.g., --json, --timeout)
+#   2. Environment variables (e.g., LAZYFOCUS_OUTPUT_FORMAT)
+#   3. Configuration file (~/.lazyfocus.yaml)
+#   4. Built-in defaults

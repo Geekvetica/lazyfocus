@@ -322,6 +322,25 @@ func TestHumanFormatter_FormatTag(t *testing.T) {
 	}
 }
 
+// mockLazyFocusError is a test implementation of LazyFocusError
+type mockLazyFocusError struct {
+	message    string
+	code       int
+	suggestion string
+}
+
+func (e *mockLazyFocusError) Error() string {
+	return e.message
+}
+
+func (e *mockLazyFocusError) ExitCode() int {
+	return e.code
+}
+
+func (e *mockLazyFocusError) Suggestion() string {
+	return e.suggestion
+}
+
 func TestHumanFormatter_FormatError(t *testing.T) {
 	formatter := NewHumanFormatter()
 
@@ -335,6 +354,24 @@ func TestHumanFormatter_FormatError(t *testing.T) {
 			err:  &testError{msg: "something went wrong"},
 			want: []string{"Error:", "something went wrong"},
 		},
+		{
+			name: "LazyFocusError with suggestion",
+			err: &mockLazyFocusError{
+				message:    "OmniFocus is not running",
+				code:       2,
+				suggestion: "Please launch OmniFocus",
+			},
+			want: []string{"Error:", "OmniFocus is not running", "Suggestion:", "Please launch OmniFocus"},
+		},
+		{
+			name: "LazyFocusError without suggestion",
+			err: &mockLazyFocusError{
+				message:    "item not found",
+				code:       3,
+				suggestion: "",
+			},
+			want: []string{"Error:", "item not found"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -344,6 +381,13 @@ func TestHumanFormatter_FormatError(t *testing.T) {
 			for _, want := range tt.want {
 				if !strings.Contains(result, want) {
 					t.Errorf("FormatError() output missing %q\nGot: %s", want, result)
+				}
+			}
+
+			// For errors without suggestion, verify "Suggestion:" is not present
+			if tt.err.Error() == "something went wrong" || tt.err.Error() == "item not found" {
+				if strings.Contains(result, "Suggestion:") && len(tt.want) < 4 {
+					t.Errorf("FormatError() should not contain 'Suggestion:' for errors without suggestion\nGot: %s", result)
 				}
 			}
 		})
