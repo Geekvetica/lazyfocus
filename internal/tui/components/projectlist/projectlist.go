@@ -131,11 +131,11 @@ func (m Model) formatProjectLine(project domain.Project, selected bool) string {
 	// Status icon based on project status
 	statusIcon := FolderIcon
 	switch project.Status {
-	case "done":
+	case "done", "completed":
 		statusIcon = CheckIcon
 	case "dropped":
 		statusIcon = DropIcon
-	case "on hold":
+	case "on hold", "on-hold":
 		statusIcon = PauseIcon
 	}
 

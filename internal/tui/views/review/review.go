@@ -10,6 +10,7 @@ import (
 	"github.com/pwojciechowski/lazyfocus/internal/domain"
 	"github.com/pwojciechowski/lazyfocus/internal/tui"
 	"github.com/pwojciechowski/lazyfocus/internal/tui/components/tasklist"
+	"github.com/pwojciechowski/lazyfocus/internal/tui/filter"
 )
 
 // Model represents the review view state
@@ -18,11 +19,13 @@ type Model struct {
 	service   service.OmniFocusService
 	styles    *tui.Styles
 	keys      tui.KeyMap
+	filter    filter.State
 	width     int
 	height    int
 	err       error
 	loaded    bool
 	taskCount int
+	allTasks  []domain.Task // Store all tasks for filtering
 }
 
 // New creates a new review view
@@ -56,8 +59,11 @@ func (m Model) loadFlaggedTasks() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tui.TasksLoadedMsg:
-		m.taskList = m.taskList.SetTasks(msg.Tasks)
-		m.taskCount = len(msg.Tasks)
+		// Store all tasks and apply filter
+		m.allTasks = msg.Tasks
+		filteredTasks := m.applyFilter(msg.Tasks)
+		m.taskList = m.taskList.SetTasks(filteredTasks)
+		m.taskCount = len(filteredTasks)
 		m.loaded = true
 		m.err = nil
 		return m, nil
@@ -139,4 +145,23 @@ func (m Model) TaskCount() int {
 // Refresh reloads flagged tasks
 func (m Model) Refresh() tea.Cmd {
 	return m.loadFlaggedTasks()
+}
+
+// SetFilter sets the filter state and applies it to tasks
+func (m Model) SetFilter(f filter.State) Model {
+	m.filter = f
+	// Re-apply filter to existing tasks
+	filteredTasks := m.applyFilter(m.allTasks)
+	m.taskList = m.taskList.SetTasks(filteredTasks)
+	m.taskCount = len(filteredTasks)
+	return m
+}
+
+// applyFilter filters tasks based on current filter state
+func (m Model) applyFilter(tasks []domain.Task) []domain.Task {
+	if !m.filter.IsActive() {
+		return tasks
+	}
+	matcher := filter.NewMatcher(m.filter)
+	return matcher.FilterTasks(tasks)
 }

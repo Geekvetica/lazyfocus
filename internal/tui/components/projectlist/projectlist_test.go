@@ -204,9 +204,11 @@ func TestFormatProjectLine_StatusIcons(t *testing.T) {
 		expectedIcon string
 	}{
 		{"Active project", "active", FolderIcon},
-		{"Completed project", "done", CheckIcon},
+		{"Completed project (done)", "done", CheckIcon},
+		{"Completed project (completed)", "completed", CheckIcon},
 		{"Dropped project", "dropped", DropIcon},
-		{"On hold project", "on hold", PauseIcon},
+		{"On hold project (space)", "on hold", PauseIcon},
+		{"On hold project (hyphen)", "on-hold", PauseIcon},
 	}
 
 	for _, tt := range tests {
@@ -220,10 +222,14 @@ func TestFormatProjectLine_StatusIcons(t *testing.T) {
 
 			line := m.formatProjectLine(project, false)
 
-			// Note: We can't easily test the exact icon due to styling,
-			// but we can verify the line is not empty
+			// Verify the line is not empty
 			if len(line) == 0 {
 				t.Error("expected non-empty line")
+			}
+
+			// Verify the expected icon appears in the line
+			if !strings.Contains(line, tt.expectedIcon) {
+				t.Errorf("expected icon %s in line, got: %s", tt.expectedIcon, line)
 			}
 		})
 	}

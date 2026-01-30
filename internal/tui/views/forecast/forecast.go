@@ -12,6 +12,7 @@ import (
 	"github.com/pwojciechowski/lazyfocus/internal/cli/service"
 	"github.com/pwojciechowski/lazyfocus/internal/domain"
 	"github.com/pwojciechowski/lazyfocus/internal/tui"
+	"github.com/pwojciechowski/lazyfocus/internal/tui/filter"
 )
 
 // DueGroup represents a group of tasks by due date category
@@ -41,11 +42,13 @@ type Model struct {
 	service   service.OmniFocusService
 	styles    *tui.Styles
 	keys      tui.KeyMap
+	filter    filter.State
 	width     int
 	height    int
 	err       error
 	loaded    bool
 	collapsed map[DueGroup]bool // Track collapsed groups
+	allTasks  []domain.Task     // Store all tasks for filtering
 }
 
 // New creates a new forecast view
@@ -80,7 +83,10 @@ func (m Model) loadTasks() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tui.TasksLoadedMsg:
-		m.items = m.groupTasks(msg.Tasks)
+		// Store all tasks and apply filter
+		m.allTasks = msg.Tasks
+		filteredTasks := m.applyFilter(msg.Tasks)
+		m.items = m.groupTasks(filteredTasks)
 		m.loaded = true
 		m.err = nil
 		// Move cursor to first task (skip header)
@@ -285,9 +291,9 @@ func (m Model) renderContent() string {
 
 func (m Model) renderGroupHeader(group DueGroup, selected bool) string {
 	name := groupName(group)
-	icon := "▶"
+	icon := "▼" // Expanded state - down arrow means "can collapse"
 	if m.collapsed[group] {
-		icon = "▼"
+		icon = "▶" // Collapsed state - right arrow means "can expand"
 	}
 
 	header := fmt.Sprintf("%s %s", icon, name)
@@ -312,7 +318,7 @@ func (m Model) renderGroupHeader(group DueGroup, selected bool) string {
 	return style.Bold(true).Render(header)
 }
 
-func (m Model) renderTask(task domain.Task, group DueGroup, selected bool) string {
+func (m Model) renderTask(task domain.Task, _ DueGroup, selected bool) string {
 	statusIcon := "☐"
 	if task.Completed {
 		statusIcon = "☑"
@@ -349,6 +355,30 @@ func (m Model) SelectedTask() *domain.Task {
 // Refresh reloads tasks
 func (m Model) Refresh() tea.Cmd {
 	return m.loadTasks()
+}
+
+// SetFilter sets the filter state and applies it to tasks
+func (m Model) SetFilter(f filter.State) Model {
+	m.filter = f
+	// Re-apply filter to existing tasks
+	filteredTasks := m.applyFilter(m.allTasks)
+	m.items = m.groupTasks(filteredTasks)
+	// Reset cursor to first valid position
+	if len(m.items) > 0 && m.items[0].IsHeader && len(m.items) > 1 {
+		m.cursor = 1
+	} else if len(m.items) > 0 {
+		m.cursor = 0
+	}
+	return m
+}
+
+// applyFilter filters tasks based on current filter state
+func (m Model) applyFilter(tasks []domain.Task) []domain.Task {
+	if !m.filter.IsActive() {
+		return tasks
+	}
+	matcher := filter.NewMatcher(m.filter)
+	return matcher.FilterTasks(tasks)
 }
 
 func groupName(g DueGroup) string {

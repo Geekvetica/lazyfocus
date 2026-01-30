@@ -28,6 +28,9 @@
 #
 # =============================================================================
 
+# Version specification for golangci-lint v2
+version: 2
+
 # Timeout for analysis (increase if you have a very large codebase)
 run:
   timeout: 3m
@@ -36,9 +39,10 @@ run:
 
 # Output configuration
 output:
-  # Format: colored-line-number, line-number, json, tab, checkstyle, code-climate
+  # Format configuration for golangci-lint v2
   formats:
-    - format: colored-line-number
+    colored-line-number:
+      path: stdout
   # Print lines of code with issue
   print-issued-lines: true
   # Print linter name in the end of issue text
@@ -52,12 +56,6 @@ linters:
   disable-all: true
   enable:
     # -------------------------------------------------------------------------
-    # Formatting & Imports
-    # -------------------------------------------------------------------------
-    - gofmt        # Checks whether code was gofmt-ed
-    - goimports    # Checks import grouping and ordering
-
-    # -------------------------------------------------------------------------
     # Code Correctness & Static Analysis
     # -------------------------------------------------------------------------
     - govet        # Official Go static analyzer (reports suspicious constructs)
@@ -67,7 +65,7 @@ linters:
     # -------------------------------------------------------------------------
     # Code Quality & Simplification
     # -------------------------------------------------------------------------
-    - gosimple     # Suggests code simplifications
+    # Note: gosimple is now integrated into staticcheck in golangci-lint v2
     - unused       # Checks for unused constants, variables, functions, types
     - ineffassign  # Detects ineffectual assignments
 
@@ -86,6 +84,13 @@ linters:
     # Security
     # -------------------------------------------------------------------------
     - gosec        # Inspects source code for security problems
+
+# Formatters configuration (v2 separates formatters from linters)
+formatters:
+  disable-all: true
+  enable:
+    - gofmt        # Checks whether code was gofmt-ed
+    - goimports    # Checks import grouping and ordering
 
 # Linter-specific settings
 linters-settings:

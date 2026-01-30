@@ -604,6 +604,80 @@ go test ./internal/bridge/...
 go test -v ./...
 ```
 
+## Linting Commands
+
+**CRITICAL: Always run lint checks before considering any implementation complete.**
+
+### Install golangci-lint (one-time setup)
+
+```bash
+# Via Homebrew (recommended)
+brew install golangci-lint
+
+# Or via go install
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+```
+
+### Run Lint Checks
+
+```bash
+# Run all linters (uses .golangci.yml config)
+golangci-lint run
+
+# Run with increased timeout for larger changes
+golangci-lint run --timeout=3m
+
+# Run on specific packages
+golangci-lint run ./internal/app/...
+
+# Show all issues including those from cache
+golangci-lint run --new=false
+```
+
+### Auto-Fix Issues
+
+```bash
+# Auto-fix formatting issues
+gofmt -w .
+
+# Auto-fix imports (add missing, remove unused)
+goimports -w .
+
+# Some linters support --fix flag
+golangci-lint run --fix
+```
+
+### Common Lint Issues and Fixes
+
+| Issue | Linter | Fix |
+|-------|--------|-----|
+| Cyclomatic complexity > 15 | gocyclo | Extract helper methods to reduce function complexity |
+| Name stuttering (e.g., `pkg.PkgType`) | revive | Rename type to avoid package prefix repetition |
+| Unused variable | unused | Remove or use the variable, use `_` for intentionally unused |
+| Missing comment on exported type | revive | Add `// TypeName ...` comment above the type |
+| Deprecated API usage | staticcheck | Replace with recommended alternative |
+| Formatting issues | gofmt | Run `gofmt -w .` |
+
+### Pre-Commit Checklist
+
+Before considering any implementation complete, run:
+
+```bash
+# 1. Format code
+gofmt -w .
+
+# 2. Run linter
+golangci-lint run --timeout=3m
+
+# 3. Run tests
+go test ./...
+
+# 4. Build
+go build ./...
+```
+
+All four commands must pass with no errors.
+
 ## Build Commands
 
 ```bash

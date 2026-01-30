@@ -149,6 +149,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Handle task detail action messages before overlay delegation
+	// These are emitted by taskdetail component and must be handled at app level
+	if newModel, cmd, handled := m.handleTaskDetailMessages(msg); handled {
+		return newModel, cmd
+	}
+
+	// Handle task edit messages before overlay delegation
+	if newModel, cmd, handled := m.handleTaskEditMessages(msg); handled {
+		return newModel, cmd
+	}
+
 	// Handle overlays in priority order (highest to lowest)
 	if newModel, cmd, handled := m.handleOverlays(msg); handled {
 		return newModel, cmd
@@ -252,16 +263,6 @@ func (m Model) handleOverlays(msg tea.Msg) (Model, tea.Cmd, bool) {
 // handleCustomMessages handles custom message types from components
 // Returns the updated model, command, and true if message was handled
 func (m Model) handleCustomMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
-	// Handle task detail action messages
-	if newModel, cmd, handled := m.handleTaskDetailMessages(msg); handled {
-		return newModel, cmd, true
-	}
-
-	// Handle task edit messages
-	if newModel, cmd, handled := m.handleTaskEditMessages(msg); handled {
-		return newModel, cmd, true
-	}
-
 	// Handle search input messages
 	if newModel, cmd, handled := m.handleSearchInputMessages(msg); handled {
 		return newModel, cmd, true
@@ -315,8 +316,8 @@ func (m Model) handleTaskDetailMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
 	}
 
 	if _, ok := msg.(taskdetail.FlagRequestedMsg); ok {
-		m.taskDetail = m.taskDetail.Hide()
 		task := m.taskDetail.Task()
+		m.taskDetail = m.taskDetail.Hide()
 		if task != nil {
 			return m, m.toggleTaskFlag(task), true
 		}
@@ -345,17 +346,20 @@ func (m Model) handleTaskEditMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
 func (m Model) handleSearchInputMessages(msg tea.Msg) (Model, tea.Cmd, bool) {
 	if searchMsg, ok := msg.(searchinput.SearchChangedMsg); ok {
 		m.filterState = m.filterState.WithSearchText(searchMsg.Text)
+		m = m.applyFilterToCurrentView()
 		return m, nil, true
 	}
 
 	if _, ok := msg.(searchinput.SearchClearedMsg); ok {
 		m.filterState = m.filterState.Clear()
-		return m, m.refreshCurrentView(), true
+		m = m.applyFilterToCurrentView()
+		return m, nil, true
 	}
 
 	if searchMsg, ok := msg.(searchinput.SearchConfirmedMsg); ok {
 		m.filterState = m.filterState.WithSearchText(searchMsg.Text)
-		return m, m.refreshCurrentView(), true
+		m = m.applyFilterToCurrentView()
+		return m, nil, true
 	}
 
 	return m, nil, false
@@ -874,11 +878,30 @@ func (m Model) executeDeleteCommand() (Model, tea.Cmd) {
 func (m Model) executeProjectCommand(cmd *command.Command) (Model, tea.Cmd) {
 	if len(cmd.Args) > 0 {
 		projectName := strings.Join(cmd.Args, " ")
-		// TODO: Resolve project name to ID
-		// For now just store the name as filter
-		_ = projectName
-		// m.filterState = m.filterState.WithProject(projectID)
-		// return m, m.refreshCurrentView()
+		// Resolve project name to ID
+		projects, err := m.service.GetProjects("")
+		if err != nil {
+			m.err = fmt.Errorf("failed to get projects: %w", err)
+			return m, nil
+		}
+
+		// Find project by name (case-insensitive)
+		var projectID string
+		projectNameLower := strings.ToLower(projectName)
+		for _, proj := range projects {
+			if strings.ToLower(proj.Name) == projectNameLower {
+				projectID = proj.ID
+				break
+			}
+		}
+
+		if projectID == "" {
+			m.err = fmt.Errorf("project not found: %s", projectName)
+			return m, nil
+		}
+
+		m.filterState = m.filterState.WithProject(projectID)
+		m = m.applyFilterToCurrentView()
 	}
 	return m, nil
 }
@@ -887,10 +910,30 @@ func (m Model) executeProjectCommand(cmd *command.Command) (Model, tea.Cmd) {
 func (m Model) executeTagCommand(cmd *command.Command) (Model, tea.Cmd) {
 	if len(cmd.Args) > 0 {
 		tagName := strings.Join(cmd.Args, " ")
-		// TODO: Resolve tag name to ID
-		_ = tagName
-		// m.filterState = m.filterState.WithTag(tagID)
-		// return m, m.refreshCurrentView()
+		// Resolve tag name to ID
+		tags, err := m.service.GetTags()
+		if err != nil {
+			m.err = fmt.Errorf("failed to get tags: %w", err)
+			return m, nil
+		}
+
+		// Find tag by name (case-insensitive)
+		var tagID string
+		tagNameLower := strings.ToLower(tagName)
+		for _, tag := range tags {
+			if strings.ToLower(tag.Name) == tagNameLower {
+				tagID = tag.ID
+				break
+			}
+		}
+
+		if tagID == "" {
+			m.err = fmt.Errorf("tag not found: %s", tagName)
+			return m, nil
+		}
+
+		m.filterState = m.filterState.WithTag(tagID)
+		m = m.applyFilterToCurrentView()
 	}
 	return m, nil
 }
@@ -913,7 +956,7 @@ func (m Model) executeDueCommand(cmd *command.Command) (Model, tea.Cmd) {
 			df = filter.DueNone
 		}
 		m.filterState = m.filterState.WithDueFilter(df)
-		return m, m.refreshCurrentView()
+		m = m.applyFilterToCurrentView()
 	}
 	return m, nil
 }
@@ -921,11 +964,27 @@ func (m Model) executeDueCommand(cmd *command.Command) (Model, tea.Cmd) {
 // executeFlaggedCommand handles the "flagged" command
 func (m Model) executeFlaggedCommand() (Model, tea.Cmd) {
 	m.filterState = m.filterState.WithFlaggedOnly(true)
-	return m, m.refreshCurrentView()
+	m = m.applyFilterToCurrentView()
+	return m, nil
 }
 
 // executeClearCommand handles the "clear" command
 func (m Model) executeClearCommand() (Model, tea.Cmd) {
 	m.filterState = m.filterState.Clear()
-	return m, m.refreshCurrentView()
+	m = m.applyFilterToCurrentView()
+	return m, nil
+}
+
+// applyFilterToCurrentView applies the current filter state to the active view
+func (m Model) applyFilterToCurrentView() Model {
+	switch m.currentView {
+	case tui.ViewInbox:
+		m.inboxView = m.inboxView.SetFilter(m.filterState)
+	case tui.ViewForecast:
+		m.forecastView = m.forecastView.SetFilter(m.filterState)
+	case tui.ViewReview:
+		m.reviewView = m.reviewView.SetFilter(m.filterState)
+		// Projects and Tags views don't support filtering (they have their own navigation)
+	}
+	return m
 }

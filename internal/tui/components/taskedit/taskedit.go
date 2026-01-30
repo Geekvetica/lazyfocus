@@ -329,33 +329,34 @@ func (m Model) buildProjectModification(mod *domain.TaskModification) {
 
 // buildTagsModification adds tag modifications (add/remove) if changed
 func (m Model) buildTagsModification(mod *domain.TaskModification) {
-	currentTagNames := make(map[string]bool)
+	// Use map[lowercaseKey]originalName to preserve original case while comparing
+	currentTagNames := make(map[string]string)
 	for _, tagName := range m.task.Tags {
-		currentTagNames[strings.ToLower(tagName)] = true
+		currentTagNames[strings.ToLower(tagName)] = tagName
 	}
 
 	newTagsStr := strings.TrimSpace(m.inputs[FieldTags].Value())
-	newTagNames := make(map[string]bool)
+	newTagNames := make(map[string]string)
 	if newTagsStr != "" {
 		for _, tagName := range strings.Split(newTagsStr, ",") {
 			trimmed := strings.TrimSpace(tagName)
 			if trimmed != "" {
-				newTagNames[strings.ToLower(trimmed)] = true
+				newTagNames[strings.ToLower(trimmed)] = trimmed
 			}
 		}
 	}
 
-	// Find tags to add
-	for tagName := range newTagNames {
-		if !currentTagNames[tagName] {
-			mod.AddTags = append(mod.AddTags, tagName)
+	// Find tags to add (using original case from newTagNames)
+	for lowerKey, originalName := range newTagNames {
+		if _, exists := currentTagNames[lowerKey]; !exists {
+			mod.AddTags = append(mod.AddTags, originalName)
 		}
 	}
 
-	// Find tags to remove
-	for tagName := range currentTagNames {
-		if !newTagNames[tagName] {
-			mod.RemoveTags = append(mod.RemoveTags, tagName)
+	// Find tags to remove (using original case from currentTagNames)
+	for lowerKey, originalName := range currentTagNames {
+		if _, exists := newTagNames[lowerKey]; !exists {
+			mod.RemoveTags = append(mod.RemoveTags, originalName)
 		}
 	}
 }
