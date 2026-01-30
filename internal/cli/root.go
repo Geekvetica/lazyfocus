@@ -101,10 +101,10 @@ func GetTimeoutFlag() time.Duration {
 func applyConfigToFlags(cmd *cobra.Command, cfg *config.Config) {
 	// Only apply config if flag was not explicitly set by user
 	if !cmd.Flags().Changed("json") && cfg.Output.Format == "json" {
-		cmd.Flags().Set("json", "true")
+		_ = cmd.Flags().Set("json", "true")
 	}
 
 	if !cmd.Flags().Changed("timeout") {
-		cmd.Flags().Set("timeout", cfg.Timeout.String())
+		_ = cmd.Flags().Set("timeout", cfg.Timeout.String())
 	}
 }

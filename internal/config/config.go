@@ -77,14 +77,14 @@ func Load() (*Config, error) {
 
 	// Bind environment variables to config keys explicitly
 	// This is needed for nested keys to work properly
-	v.BindEnv("output.format", "LAZYFOCUS_OUTPUT_FORMAT")
-	v.BindEnv("timeout", "LAZYFOCUS_TIMEOUT")
-	v.BindEnv("defaults.project", "LAZYFOCUS_DEFAULTS_PROJECT")
-	v.BindEnv("tui.theme", "LAZYFOCUS_TUI_THEME")
-	v.BindEnv("tui.colors.primary", "LAZYFOCUS_TUI_COLORS_PRIMARY")
-	v.BindEnv("tui.colors.flagged", "LAZYFOCUS_TUI_COLORS_FLAGGED")
-	v.BindEnv("tui.colors.due", "LAZYFOCUS_TUI_COLORS_DUE")
-	v.BindEnv("tui.colors.overdue", "LAZYFOCUS_TUI_COLORS_OVERDUE")
+	_ = v.BindEnv("output.format", "LAZYFOCUS_OUTPUT_FORMAT")
+	_ = v.BindEnv("timeout", "LAZYFOCUS_TIMEOUT")
+	_ = v.BindEnv("defaults.project", "LAZYFOCUS_DEFAULTS_PROJECT")
+	_ = v.BindEnv("tui.theme", "LAZYFOCUS_TUI_THEME")
+	_ = v.BindEnv("tui.colors.primary", "LAZYFOCUS_TUI_COLORS_PRIMARY")
+	_ = v.BindEnv("tui.colors.flagged", "LAZYFOCUS_TUI_COLORS_FLAGGED")
+	_ = v.BindEnv("tui.colors.due", "LAZYFOCUS_TUI_COLORS_DUE")
+	_ = v.BindEnv("tui.colors.overdue", "LAZYFOCUS_TUI_COLORS_OVERDUE")
 
 	// Read config file (ignore if not found)
 	if err := v.ReadInConfig(); err != nil {
@@ -101,8 +101,8 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
-// ConfigFilePath returns the path to the config file
-func ConfigFilePath() string {
+// FilePath returns the path to the config file
+func FilePath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ".lazyfocus.yaml"

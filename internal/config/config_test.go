@@ -175,29 +175,29 @@ func TestLoad_InvalidConfigFile_ReturnsError(t *testing.T) {
 	}
 }
 
-func TestConfigFilePath_ReturnsCorrectPath(t *testing.T) {
+func TestFilePath_ReturnsCorrectPath(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Skip("Cannot get user home directory, skipping test")
 	}
 
 	expected := filepath.Join(home, ".lazyfocus.yaml")
-	actual := ConfigFilePath()
+	actual := FilePath()
 
 	if actual != expected {
 		t.Errorf("Expected config path %q, got %q", expected, actual)
 	}
 }
 
-func TestConfigFilePath_NoHomeDir_ReturnsFallback(t *testing.T) {
+func TestFilePath_NoHomeDir_ReturnsFallback(t *testing.T) {
 	// This test is harder to implement reliably since we can't easily
 	// make os.UserHomeDir() fail. Documenting expected behavior:
 	// If HOME is not available, should return ".lazyfocus.yaml"
 
 	// For now, just verify the function doesn't panic
-	path := ConfigFilePath()
+	path := FilePath()
 	if path == "" {
-		t.Error("ConfigFilePath() returned empty string")
+		t.Error("FilePath() returned empty string")
 	}
 }
 
@@ -236,7 +236,10 @@ func TestFromContext_WithoutConfig(t *testing.T) {
 }
 
 func TestFromContext_WithNilContext(t *testing.T) {
-	result, err := FromContext(nil)
+	// Test that FromContext handles nil by checking a context without config
+	// Using context.TODO() as per SA1012 - do not pass nil Context
+	emptyCtx := context.TODO()
+	result, err := FromContext(emptyCtx)
 	if err != ErrConfigNotFound {
 		t.Errorf("Expected ErrConfigNotFound, got %v", err)
 	}
@@ -269,7 +272,9 @@ func TestContextWithConfig_WithNilContext(t *testing.T) {
 		Output: OutputConfig{Format: "json"},
 	}
 
-	newCtx := ContextWithConfig(nil, cfg)
+	// ContextWithConfig handles nil by using context.Background() internally
+	// Using context.TODO() as per SA1012 - do not pass nil Context
+	newCtx := ContextWithConfig(context.TODO(), cfg)
 
 	retrievedConfig, err := FromContext(newCtx)
 	if err != nil {

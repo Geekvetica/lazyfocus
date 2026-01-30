@@ -21,10 +21,12 @@ func (e *OmniFocusError) Error() string {
 	return e.message
 }
 
+// ExitCode returns the exit code for OmniFocus errors.
 func (e *OmniFocusError) ExitCode() int {
 	return ExitOmniFocusError
 }
 
+// Suggestion returns a helpful suggestion for resolving the error.
 func (e *OmniFocusError) Suggestion() string {
 	return e.suggestion
 }
@@ -61,10 +63,12 @@ func (e *ItemNotFoundError) Error() string {
 	return fmt.Sprintf("%s not found: %s", e.itemType, e.itemID)
 }
 
+// ExitCode returns the exit code for item not found errors.
 func (e *ItemNotFoundError) ExitCode() int {
 	return ExitItemNotFound
 }
 
+// Suggestion returns a helpful suggestion for resolving the error.
 func (e *ItemNotFoundError) Suggestion() string {
 	return e.suggestion
 }
@@ -87,10 +91,12 @@ func (e *ValidationError) Error() string {
 	return e.message
 }
 
+// ExitCode returns the exit code for validation errors.
 func (e *ValidationError) ExitCode() int {
 	return ExitValidationError
 }
 
+// Suggestion returns a helpful suggestion for resolving the error.
 func (e *ValidationError) Suggestion() string {
 	return e.suggestion
 }
@@ -115,10 +121,12 @@ func (e *DateParseError) Error() string {
 	return fmt.Sprintf("invalid due date: %s: %s", e.reason, e.dateStr)
 }
 
+// ExitCode returns the exit code for date parse errors.
 func (e *DateParseError) ExitCode() int {
 	return ExitValidationError
 }
 
+// Suggestion returns a helpful suggestion for resolving the error.
 func (e *DateParseError) Suggestion() string {
 	return e.suggestion
 }
@@ -141,10 +149,12 @@ func (e *PermissionError) Error() string {
 	return e.message
 }
 
+// ExitCode returns the exit code for permission errors.
 func (e *PermissionError) ExitCode() int {
 	return ExitPermissionError
 }
 
+// Suggestion returns a helpful suggestion for resolving the error.
 func (e *PermissionError) Suggestion() string {
 	return e.suggestion
 }
