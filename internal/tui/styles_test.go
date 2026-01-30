@@ -252,3 +252,117 @@ func TestAdaptiveColors(t *testing.T) {
 		}
 	})
 }
+
+func TestProjectStyles(t *testing.T) {
+	styles := DefaultStyles()
+
+	t.Run("ProjectActive has foreground color", func(t *testing.T) {
+		if styles.Project.Active.GetForeground() == nil {
+			t.Error("ProjectActive foreground not set")
+		}
+	})
+
+	t.Run("ProjectOnHold has faint styling", func(t *testing.T) {
+		if !styles.Project.OnHold.GetFaint() {
+			t.Error("ProjectOnHold should be faint")
+		}
+	})
+
+	t.Run("ProjectCompleted has strikethrough and faint", func(t *testing.T) {
+		if !styles.Project.Completed.GetStrikethrough() {
+			t.Error("ProjectCompleted should have strikethrough")
+		}
+		if !styles.Project.Completed.GetFaint() {
+			t.Error("ProjectCompleted should be faint")
+		}
+	})
+
+	t.Run("ProjectDropped has strikethrough and faint", func(t *testing.T) {
+		if !styles.Project.Dropped.GetStrikethrough() {
+			t.Error("ProjectDropped should have strikethrough")
+		}
+		if !styles.Project.Dropped.GetFaint() {
+			t.Error("ProjectDropped should be faint")
+		}
+	})
+}
+
+func TestForecastStyles(t *testing.T) {
+	styles := DefaultStyles()
+
+	t.Run("ForecastOverdue has bold styling", func(t *testing.T) {
+		if !styles.Forecast.Overdue.GetBold() {
+			t.Error("ForecastOverdue should be bold")
+		}
+	})
+
+	t.Run("ForecastToday has bold styling", func(t *testing.T) {
+		if !styles.Forecast.Today.GetBold() {
+			t.Error("ForecastToday should be bold")
+		}
+	})
+
+	t.Run("ForecastTomorrow has foreground color", func(t *testing.T) {
+		if styles.Forecast.Tomorrow.GetForeground() == nil {
+			t.Error("ForecastTomorrow foreground not set")
+		}
+	})
+
+	t.Run("ForecastLater has faint styling", func(t *testing.T) {
+		if !styles.Forecast.Later.GetFaint() {
+			t.Error("ForecastLater should be faint")
+		}
+	})
+
+	t.Run("ForecastGroupHeader has bold and underline", func(t *testing.T) {
+		if !styles.Forecast.GroupHeader.GetBold() {
+			t.Error("ForecastGroupHeader should be bold")
+		}
+		if !styles.Forecast.GroupHeader.GetUnderline() {
+			t.Error("ForecastGroupHeader should have underline")
+		}
+	})
+}
+
+func TestSearchStyles(t *testing.T) {
+	styles := DefaultStyles()
+
+	t.Run("SearchHighlight has background color", func(t *testing.T) {
+		if styles.Search.Highlight.GetBackground() == nil {
+			t.Error("SearchHighlight background not set")
+		}
+	})
+
+	t.Run("SearchInput has border", func(t *testing.T) {
+		// Just verify the style can render without panic
+		result := styles.Search.Input.Render("test")
+		if result == "" {
+			t.Error("SearchInput should render text")
+		}
+	})
+}
+
+func TestTagStyles(t *testing.T) {
+	styles := DefaultStyles()
+
+	t.Run("TagBadge has foreground and background", func(t *testing.T) {
+		if styles.Tag.Badge.GetForeground() == nil {
+			t.Error("TagBadge foreground not set")
+		}
+		if styles.Tag.Badge.GetBackground() == nil {
+			t.Error("TagBadge background not set")
+		}
+	})
+
+	t.Run("TagSelected has bold styling", func(t *testing.T) {
+		if !styles.Tag.Selected.GetBold() {
+			t.Error("TagSelected should be bold")
+		}
+	})
+
+	t.Run("TagSelected has background color", func(t *testing.T) {
+		if styles.Tag.Selected.GetBackground() == nil {
+			t.Error("TagSelected background not set")
+		}
+	})
+}

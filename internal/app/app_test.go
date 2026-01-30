@@ -8,6 +8,7 @@ import (
 	"github.com/pwojciechowski/lazyfocus/internal/cli/service"
 	"github.com/pwojciechowski/lazyfocus/internal/domain"
 	"github.com/pwojciechowski/lazyfocus/internal/tui"
+	"github.com/pwojciechowski/lazyfocus/internal/tui/components/confirm"
 )
 
 func TestNewApp(t *testing.T) {
@@ -176,10 +177,10 @@ func TestAppViewSwitching(t *testing.T) {
 		expectedView int
 	}{
 		{"Switch to Inbox", '1', tui.ViewInbox},
-		{"Switch to Projects (not implemented)", '2', tui.ViewInbox}, // Should stay on inbox in Phase 4
-		{"Switch to Tags (not implemented)", '3', tui.ViewInbox},
-		{"Switch to Forecast (not implemented)", '4', tui.ViewInbox},
-		{"Switch to Review (not implemented)", '5', tui.ViewInbox},
+		{"Switch to Projects", '2', tui.ViewProjects},
+		{"Switch to Tags", '3', tui.ViewTags},
+		{"Switch to Forecast", '4', tui.ViewForecast},
+		{"Switch to Review", '5', tui.ViewReview},
 	}
 
 	for _, tt := range tests {
@@ -390,13 +391,16 @@ func TestAppGlobalKeysIgnoredWhenOverlayVisible(t *testing.T) {
 	newModel, _ := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
 	app = newModel.(Model)
 
-	// Act - try to switch view while quick add is open (should be ignored)
+	// Record the current view before attempting to switch
+	initialView := app.currentView
+
+	// Act - try to switch view while quick add is open (should be delegated to quick add, not app)
 	newModel, _ = app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
 	app = newModel.(Model)
 
-	// Assert - view should not change, quick add should still be visible
-	if app.currentView != tui.ViewInbox {
-		t.Errorf("expected view to remain tui.ViewInbox, got %d", app.currentView)
+	// Assert - view should not change (quick add intercepts the key), quick add should still be visible
+	if app.currentView != initialView {
+		t.Errorf("expected view to remain %d, got %d", initialView, app.currentView)
 	}
 	if !app.quickAdd.IsVisible() {
 		t.Error("expected quick add to still be visible")
@@ -497,5 +501,153 @@ func TestCenterOverlayLargeContent(t *testing.T) {
 			}
 			// centerOverlay should handle edge cases gracefully without panicking
 		})
+	}
+}
+
+// Tests for delete task functionality (Stage 3)
+
+func TestDeleteKey_ShowsConfirmation(t *testing.T) {
+	mockSvc := &service.MockOmniFocusService{
+		InboxTasks: []domain.Task{{ID: "task1", Name: "Test Task"}},
+	}
+	app := NewApp(mockSvc)
+	newModel, _ := app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tui.TasksLoadedMsg{Tasks: mockSvc.InboxTasks})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	app = newModel.(Model)
+	if !app.confirmModal.IsVisible() {
+		t.Error("confirm modal should be visible after 'd' key")
+	}
+}
+
+func TestDeleteKey_NoTaskSelected_NoConfirmation(t *testing.T) {
+	mockSvc := &service.MockOmniFocusService{InboxTasks: []domain.Task{}}
+	app := NewApp(mockSvc)
+	newModel, _ := app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tui.TasksLoadedMsg{Tasks: mockSvc.InboxTasks})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	app = newModel.(Model)
+	if app.confirmModal.IsVisible() {
+		t.Error("confirm modal should not be visible when no task is selected")
+	}
+}
+
+func TestDeleteConfirmed_TriggersDeleteCommand(t *testing.T) {
+	mockSvc := &service.MockOmniFocusService{
+		InboxTasks: []domain.Task{{ID: "task1", Name: "Test Task"}},
+	}
+	app := NewApp(mockSvc)
+	newModel, _ := app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tui.TasksLoadedMsg{Tasks: mockSvc.InboxTasks})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	app = newModel.(Model)
+	newModel, cmd := app.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	app = newModel.(Model)
+	if cmd == nil {
+		t.Fatal("expected command from confirmation")
+	}
+	confirmedMsg := cmd()
+	_, deleteCmd := app.Update(confirmedMsg)
+	if deleteCmd == nil {
+		t.Fatal("expected delete command to be returned")
+	}
+}
+
+func TestTaskDeletedMsg_RefreshesView(t *testing.T) {
+	mockSvc := &service.MockOmniFocusService{
+		InboxTasks: []domain.Task{{ID: "task1", Name: "Test Task"}},
+	}
+	app := NewApp(mockSvc)
+	newModel, _ := app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tui.TasksLoadedMsg{Tasks: mockSvc.InboxTasks})
+	app = newModel.(Model)
+	_, cmd := app.Update(tui.TaskDeletedMsg{TaskID: "task1", TaskName: "Test Task"})
+	if cmd == nil {
+		t.Error("expected refresh command after task deletion")
+	}
+}
+
+// Tests for flag toggle functionality (Stage 4)
+
+func TestFlagKey_TogglesFlag(t *testing.T) {
+	mockSvc := &service.MockOmniFocusService{
+		InboxTasks: []domain.Task{{ID: "task1", Name: "Test Task", Flagged: false}},
+	}
+	app := NewApp(mockSvc)
+	newModel, _ := app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tui.TasksLoadedMsg{Tasks: mockSvc.InboxTasks})
+	app = newModel.(Model)
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}})
+	if cmd == nil {
+		t.Fatal("expected command to be returned for flag toggle")
+	}
+}
+
+func TestFlagKey_NoTaskSelected_NoAction(t *testing.T) {
+	mockSvc := &service.MockOmniFocusService{InboxTasks: []domain.Task{}}
+	app := NewApp(mockSvc)
+	newModel, _ := app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tui.TasksLoadedMsg{Tasks: mockSvc.InboxTasks})
+	app = newModel.(Model)
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}})
+	if cmd != nil {
+		t.Error("expected no command when no task is selected")
+	}
+}
+
+func TestTaskModifiedMsg_RefreshesView(t *testing.T) {
+	mockSvc := &service.MockOmniFocusService{
+		InboxTasks: []domain.Task{{ID: "task1", Name: "Test Task", Flagged: false}},
+	}
+	app := NewApp(mockSvc)
+	newModel, _ := app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tui.TasksLoadedMsg{Tasks: mockSvc.InboxTasks})
+	app = newModel.(Model)
+	modifiedTask := domain.Task{ID: "task1", Name: "Test Task", Flagged: true}
+	_, cmd := app.Update(tui.TaskModifiedMsg{Task: modifiedTask})
+	if cmd == nil {
+		t.Error("expected refresh command after task modification")
+	}
+}
+
+func TestConfirmModal_ContextCarriesTaskInfo(t *testing.T) {
+	mockSvc := &service.MockOmniFocusService{
+		InboxTasks: []domain.Task{{ID: "task1", Name: "Test Task Name"}},
+	}
+	app := NewApp(mockSvc)
+	newModel, _ := app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tui.TasksLoadedMsg{Tasks: mockSvc.InboxTasks})
+	app = newModel.(Model)
+	newModel, _ = app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	app = newModel.(Model)
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd == nil {
+		t.Fatal("expected command")
+	}
+	msg := cmd()
+	confirmedMsg, ok := msg.(confirm.ConfirmedMsg)
+	if !ok {
+		t.Fatalf("expected ConfirmedMsg, got %T", msg)
+	}
+	ctx, ok := confirmedMsg.Context.(DeleteContext)
+	if !ok {
+		t.Fatalf("expected DeleteContext, got %T", confirmedMsg.Context)
+	}
+	if ctx.TaskID != "task1" {
+		t.Errorf("expected TaskID 'task1', got '%s'", ctx.TaskID)
+	}
+	if ctx.TaskName != "Test Task Name" {
+		t.Errorf("expected TaskName 'Test Task Name', got '%s'", ctx.TaskName)
 	}
 }

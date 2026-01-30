@@ -23,6 +23,8 @@ LazyFocus (`lazyfocus` / `lf`) is a CLI and TUI tool that interfaces with OmniFo
 lazyfocus/
 ├── cmd/lazyfocus/main.go          # Single entrypoint
 ├── internal/
+│   ├── app/                       # Main TUI application
+│   │   └── app.go                 # Root model, orchestration
 │   ├── bridge/                    # Omni Automation execution layer
 │   │   ├── executor.go            # osascript wrapper
 │   │   ├── scripts.go             # Embedded JS scripts
@@ -41,11 +43,28 @@ lazyfocus/
 │   │   ├── modify.go
 │   │   └── output.go              # Human vs JSON formatting
 │   └── tui/                       # Bubble Tea TUI
-│       ├── app.go                 # Main model, orchestration
 │       ├── keys.go                # Keybinding definitions
 │       ├── styles.go              # Lip Gloss styles
+│       ├── messages.go            # Message types
+│       ├── command/               # Vim-style command parsing
+│       ├── filter/                # Search/filter state
+│       ├── overlay/               # Overlay compositor
 │       ├── components/            # Reusable UI components
+│       │   ├── quickadd/          # Quick add task overlay
+│       │   ├── taskdetail/        # Task detail view
+│       │   ├── taskedit/          # Task editing overlay
+│       │   ├── confirm/           # Confirmation modal
+│       │   ├── searchinput/       # Search input
+│       │   ├── commandinput/      # Command input
+│       │   ├── tasklist/          # Task list display
+│       │   ├── projectlist/       # Project list display
+│       │   └── taglist/           # Tag list display
 │       └── views/                 # Screen implementations
+│           ├── inbox/             # Inbox view
+│           ├── projects/          # Projects view
+│           ├── tags/              # Tags view
+│           ├── forecast/          # Forecast view
+│           └── review/            # Review view
 └── scripts/                       # Raw Omni Automation JS (reference/testing)
 ```
 
@@ -89,29 +108,31 @@ When implementing features, use the appropriate subagents:
 - ✅ Natural date parsing (relative, next, in N units, ISO format)
 - ⚠️ **Limitation:** Only one tag can be added during task creation via natural syntax due to OmniFocus API constraints. Use `modify --add-tag` for additional tags.
 
-### Phase 4: TUI - Basic Structure 🚧 IN PROGRESS
-**Status:** Inbox view and Quick Add functional, other views planned
+### Phase 4: TUI - Basic Structure ✅ COMPLETE
+**Status:** Fully implemented with all core views and actions
 - ✅ Bubble Tea application shell with model architecture
 - ✅ Inbox view with task list rendering
 - ✅ Quick Add overlay with natural syntax support
 - ✅ Basic task navigation (j/k, Enter to view details)
 - ✅ Task completion (c key)
 - ✅ Task list component with formatting
-- ⬚ Projects view (planned)
-- ⬚ Tags view (planned)
-- ⬚ Forecast view (planned)
-- ⬚ Review view (planned)
-- ⬚ View switching (1-5 keys) (planned)
+- ✅ Help overlay (? key)
+- ✅ Overlay compositor for proper layering
 
-### Phase 5: TUI - Full Implementation ⬚ NOT STARTED
-**Status:** Planned for future development
-- ⬚ All views (Projects, Tags, Forecast, Review)
-- ⬚ Search/filter functionality within TUI
-- ⬚ All task actions within TUI (edit, delete, defer)
-- ⬚ Vim-style command mode (: prefix)
-- ⬚ Task detail view with edit capabilities
-- ⬚ Project navigation and management
-- ⬚ Tag filtering interface
+### Phase 5: TUI - Full Implementation ✅ COMPLETE
+**Status:** Fully implemented with all views, actions, and advanced features
+- ✅ All views: Projects (2), Tags (3), Forecast (4), Review (5)
+- ✅ View switching via 1-5 keys
+- ✅ Task detail view (Enter key) with full information display
+- ✅ Task editing (e key) with tabbed form navigation
+- ✅ Task deletion (d key) with confirmation modal
+- ✅ Flag toggle (f key) for immediate flagging
+- ✅ Search/filter functionality (/ key) with real-time filtering
+- ✅ Vim-style command mode (: key) with command history and tab completion
+- ✅ Projects view with drill-down navigation to project tasks
+- ✅ Tags view with hierarchical display and drill-down
+- ✅ Forecast view with tasks grouped by due date (Overdue, Today, Tomorrow, Week, Later)
+- ✅ Review view for flagged tasks
 
 ### Phase 6: Polish & Distribution ⬚ NOT STARTED
 **Status:** Planned for 1.0 release
@@ -467,25 +488,29 @@ INBOX (3 tasks)
 
 ### Current Implementation Status
 
-**✅ Implemented Features:**
-- Inbox view with task list rendering
-- Quick Add overlay (press `a`)
-- Task completion (press `c` on selected task)
-- Basic navigation (j/k for up/down, Enter for details)
-- Status bar with help text
-- Task list component with proper formatting
+**✅ All Features Implemented:**
 
-**🚧 Planned Features:**
-- Projects view (view 2)
-- Tags view (view 3)
-- Forecast view (view 4)
-- Review view (view 5)
-- View switching via `1-5` keys
-- Task editing within TUI (press `e`)
-- Task deletion within TUI (press `d`)
-- Search/filter functionality
-- Vim-style command mode (`:` prefix)
-- Pane switching (h/l keys)
+**Views:**
+- Inbox view (key `1`) - Task list with completion status
+- Projects view (key `2`) - Project list with drill-down to tasks
+- Tags view (key `3`) - Hierarchical tag list with drill-down
+- Forecast view (key `4`) - Tasks grouped by due date
+- Review view (key `5`) - Flagged tasks for quick review
+
+**Overlays:**
+- Quick Add (`a`) - Natural syntax task creation
+- Task Detail (`Enter`) - Full task information with actions
+- Task Edit (`e`) - Tabbed form for modifying tasks
+- Delete Confirmation (`d`) - Confirmation modal for destructive actions
+- Search Input (`/`) - Real-time task filtering
+- Command Input (`:`) - Vim-style command mode
+- Help (`?`) - Keyboard shortcuts reference
+
+**Task Actions:**
+- Complete (`c`) - Mark task as complete
+- Delete (`d`) - Delete with confirmation
+- Edit (`e`) - Open edit overlay
+- Flag (`f`) - Toggle flagged status
 
 ### Bubble Tea Patterns
 - Keep Model immutable, return new Model from Update
@@ -496,22 +521,42 @@ INBOX (3 tasks)
 
 ### Key Bindings
 
-**Currently Implemented:**
-- `j` or `↓` - Move down in task list
-- `k` or `↑` - Move up in task list
-- `Enter` - View task details
+**Navigation:**
+- `j` or `↓` - Move down in list
+- `k` or `↑` - Move up in list
+- `Enter` - View task details / drill-down into project or tag
+- `h` or `Esc` - Go back from drill-down view
+- `1-5` - Switch between views (Inbox, Projects, Tags, Forecast, Review)
+
+**Task Actions:**
 - `a` - Open Quick Add overlay
 - `c` - Complete selected task
-- `q` - Quit application
-- `?` - Show help (planned)
-
-**Planned:**
-- `1-5` - Switch between views (Inbox, Projects, Tags, Forecast, Review)
-- `h/l` or `←/→` - Pane switching (when applicable)
+- `d` - Delete selected task (with confirmation)
 - `e` - Edit selected task
-- `d` - Delete selected task
-- `/` - Search/filter
-- `:` - Vim-style command mode
+- `f` - Toggle flag on selected task
+
+**Search & Commands:**
+- `/` - Open search input (real-time filtering)
+- `:` - Open command input (vim-style commands)
+
+**General:**
+- `?` - Toggle help overlay
+- `q` or `Ctrl+C` - Quit application
+
+### Vim-Style Commands
+
+Available commands (all support aliases):
+- `:quit` / `:q` / `:exit` - Quit application
+- `:refresh` / `:w` / `:sync` - Refresh current view
+- `:add` / `:a` `<task>` - Add new task
+- `:complete` / `:done` / `:c` - Complete selected task
+- `:delete` / `:del` / `:rm` - Delete selected task
+- `:project` / `:p` `<name>` - Filter by project
+- `:tag` / `:t` `<name>` - Filter by tag
+- `:due` `<today|tomorrow|week|overdue>` - Filter by due date
+- `:flagged` - Show only flagged tasks
+- `:clear` / `:reset` - Clear all filters
+- `:help` / `:?` - Show help
 
 ### Component Interface
 ```go
@@ -526,10 +571,22 @@ type Component interface {
 
 The TUI follows a component-based architecture:
 
-- **Main Model (`internal/tui/app.go`)**: Root application state and orchestration
-- **Quick Add Component (`internal/tui/quickadd.go`)**: Overlay for adding tasks with natural syntax
-- **Task List Rendering**: In-place rendering of tasks in Inbox view
-- **Message Passing**: Custom messages for async operations (TasksLoadedMsg, TaskCompletedMsg)
+- **Main Model (`internal/app/app.go`)**: Root application state and orchestration
+- **Views** (`internal/tui/views/`): Inbox, Projects, Tags, Forecast, Review
+- **Components** (`internal/tui/components/`):
+  - `quickadd` - Quick Add overlay with natural syntax
+  - `taskdetail` - Task detail view overlay
+  - `taskedit` - Task editing overlay with tabbed form
+  - `confirm` - Reusable confirmation modal
+  - `searchinput` - Search input with real-time filtering
+  - `commandinput` - Vim-style command input
+  - `tasklist` - Reusable task list display
+  - `projectlist` - Project list display
+  - `taglist` - Hierarchical tag list display
+- **Filter State** (`internal/tui/filter/`): Search and filter state management
+- **Command Parser** (`internal/tui/command/`): Vim-style command parsing
+- **Message Passing**: Custom messages for async operations (TasksLoadedMsg, TaskCompletedMsg, etc.)
+- **Overlay Compositor** (`internal/tui/overlay/`): Character-level overlay compositing
 
 ## Testing Commands
 
