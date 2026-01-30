@@ -647,6 +647,19 @@ goimports -w .
 golangci-lint run --fix
 ```
 
+### Configuration Compatibility Warning
+
+**CRITICAL: Do NOT modify `.golangci.yml` without verifying CI compatibility.**
+
+The CI uses golangci-lint **v1.64.8** (pinned in `.github/workflows/ci.yml`). The configuration file uses v1 format, which is NOT compatible with golangci-lint v2.
+
+**v2-only features that will BREAK CI:**
+- `version: 2` at the root level
+- `formatters:` section (v2 separates formatters from linters)
+- `output.formats:` as an object (v1 requires array format)
+
+If you have golangci-lint v2 installed locally, you may see config errors when running `golangci-lint config verify`. This is expected - the config is designed for the CI's v1.64.8 version.
+
 ### Common Lint Issues and Fixes
 
 | Issue | Linter | Fix |

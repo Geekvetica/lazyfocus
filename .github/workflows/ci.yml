@@ -68,7 +68,10 @@ jobs:
         with:
           # Use configuration from .golangci.yml
           # This action automatically caches linter results
-          version: latest
+          # IMPORTANT: Pin version to v1.64.x to match .golangci.yml config format
+          # The config uses v1 format; do NOT use 'latest' as it may resolve to v2
+          # When upgrading, ensure .golangci.yml is updated to match the new format
+          version: v1.64.8
           args: --timeout=3m
 
   # ===========================================================================

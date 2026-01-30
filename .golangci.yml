@@ -3,6 +3,13 @@
 # =============================================================================
 # Purpose: Comprehensive linting configuration for Go code quality
 #
+# COMPATIBILITY: This configuration is for golangci-lint v1.x (NOT v2)
+# The CI workflow uses golangci-lint v1.64.x, so this config must remain
+# compatible with v1 format. Do NOT add v2-only features like:
+#   - version: 2
+#   - formatters: section
+#   - object-style formats: section
+#
 # This configuration balances strictness with practicality, focusing on:
 #   - Code correctness (govet, staticcheck, errcheck)
 #   - Code simplicity (gosimple, unused, ineffassign)
@@ -28,9 +35,6 @@
 #
 # =============================================================================
 
-# Version specification for golangci-lint v2
-version: 2
-
 # Timeout for analysis (increase if you have a very large codebase)
 run:
   timeout: 3m
@@ -39,10 +43,10 @@ run:
 
 # Output configuration
 output:
-  # Format configuration for golangci-lint v2
+  # Format: colored-line-number, line-number, json, tab, checkstyle, code-climate
+  # NOTE: v1 requires array format, NOT object format
   formats:
-    colored-line-number:
-      path: stdout
+    - format: colored-line-number
   # Print lines of code with issue
   print-issued-lines: true
   # Print linter name in the end of issue text
@@ -56,6 +60,12 @@ linters:
   disable-all: true
   enable:
     # -------------------------------------------------------------------------
+    # Formatting & Imports
+    # -------------------------------------------------------------------------
+    - gofmt        # Checks whether code was gofmt-ed
+    - goimports    # Checks import grouping and ordering
+
+    # -------------------------------------------------------------------------
     # Code Correctness & Static Analysis
     # -------------------------------------------------------------------------
     - govet        # Official Go static analyzer (reports suspicious constructs)
@@ -65,7 +75,7 @@ linters:
     # -------------------------------------------------------------------------
     # Code Quality & Simplification
     # -------------------------------------------------------------------------
-    # Note: gosimple is now integrated into staticcheck in golangci-lint v2
+    - gosimple     # Suggests code simplifications
     - unused       # Checks for unused constants, variables, functions, types
     - ineffassign  # Detects ineffectual assignments
 
@@ -84,13 +94,6 @@ linters:
     # Security
     # -------------------------------------------------------------------------
     - gosec        # Inspects source code for security problems
-
-# Formatters configuration (v2 separates formatters from linters)
-formatters:
-  disable-all: true
-  enable:
-    - gofmt        # Checks whether code was gofmt-ed
-    - goimports    # Checks import grouping and ordering
 
 # Linter-specific settings
 linters-settings:
