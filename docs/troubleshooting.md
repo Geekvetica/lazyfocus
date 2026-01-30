@@ -465,11 +465,13 @@ lazyfocus add "Task" --project "NonExistent" --json
 ```
 
 ### Exit Codes
-LazyFocus uses standard Unix exit codes:
+LazyFocus uses standard Unix exit codes for scripting and automation:
 - `0` - Success
 - `1` - General error (invalid arguments, missing flags)
 - `2` - OmniFocus not running or permission denied
 - `3` - Item not found (task, project, or tag)
+- `4` - Validation error (invalid input data)
+- `5` - Permission error (automation access denied)
 
 Check exit codes in scripts:
   ```bash
@@ -478,6 +480,20 @@ Check exit codes in scripts:
   else
     echo "Failed with exit code $?"
   fi
+  ```
+
+Example handling specific exit codes:
+  ```bash
+  lazyfocus add "Task"
+  case $? in
+    0) echo "Success" ;;
+    1) echo "Invalid arguments" ;;
+    2) echo "OmniFocus not running" ;;
+    3) echo "Item not found" ;;
+    4) echo "Invalid input" ;;
+    5) echo "Permission denied" ;;
+    *) echo "Unknown error" ;;
+  esac
   ```
 
 ---

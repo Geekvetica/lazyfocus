@@ -7,6 +7,7 @@ import (
 
 	"github.com/pwojciechowski/lazyfocus/internal/bridge"
 	"github.com/pwojciechowski/lazyfocus/internal/cli/service"
+	"github.com/pwojciechowski/lazyfocus/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +39,21 @@ scripting and AI agent integration.`,
 			ctx := cmd.Context()
 			if ctx == nil {
 				ctx = context.Background()
+			}
+
+			// Load configuration (if not already in context from tests)
+			if _, err := config.FromContext(ctx); err != nil {
+				cfg, err := config.Load()
+				if err != nil {
+					return err
+				}
+
+				// Apply config values to flags if flags were not explicitly set
+				applyConfigToFlags(cmd, cfg)
+
+				// Inject config into context
+				ctx = config.ContextWithConfig(ctx, cfg)
+				cmd.SetContext(ctx)
 			}
 
 			// Check if service is already in context (e.g., from tests)
@@ -79,4 +95,16 @@ func GetQuietFlag() bool {
 // GetTimeoutFlag returns the value of the --timeout flag
 func GetTimeoutFlag() time.Duration {
 	return timeout
+}
+
+// applyConfigToFlags applies configuration values to flags if flags were not explicitly set
+func applyConfigToFlags(cmd *cobra.Command, cfg *config.Config) {
+	// Only apply config if flag was not explicitly set by user
+	if !cmd.Flags().Changed("json") && cfg.Output.Format == "json" {
+		_ = cmd.Flags().Set("json", "true")
+	}
+
+	if !cmd.Flags().Changed("timeout") {
+		_ = cmd.Flags().Set("timeout", cfg.Timeout.String())
+	}
 }

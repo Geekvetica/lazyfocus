@@ -19,6 +19,7 @@ func main() {
 	rootCmd.AddCommand(cli.NewShowCommand())
 	rootCmd.AddCommand(cli.NewPerspectiveCommand())
 	rootCmd.AddCommand(cli.NewVersionCommand())
+	rootCmd.AddCommand(cli.NewCompletionCommand())
 
 	// Write operation commands
 	rootCmd.AddCommand(cli.NewAddCommand())

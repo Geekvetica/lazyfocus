@@ -3,10 +3,13 @@ package cli
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/pwojciechowski/lazyfocus/internal/cli/service"
+	"github.com/pwojciechowski/lazyfocus/internal/config"
 	"github.com/pwojciechowski/lazyfocus/internal/domain"
 	"github.com/spf13/cobra"
 )
@@ -298,5 +301,144 @@ func TestRootCommand_PersistentPreRunE_UsesExistingServiceFromContext(t *testing
 	// Verify that the original mock service was used (not replaced)
 	if serviceFromCommand != mockService {
 		t.Error("Expected PersistentPreRunE to use existing service from context, but it was replaced")
+	}
+}
+
+func TestRootCommand_PersistentPreRunE_LoadsConfigIntoContext(t *testing.T) {
+	// Create temp directory for config
+	tmpDir := t.TempDir()
+	oldHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", oldHome)
+
+	// Write config file with custom values
+	configContent := `output:
+  format: json
+timeout: 60s
+`
+	configPath := filepath.Join(tmpDir, ".lazyfocus.yaml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	rootCmd := NewRootCommand()
+
+	// Create a mock service
+	mockService := &service.MockOmniFocusService{
+		InboxTasks: []domain.Task{
+			{ID: "task1", Name: "Test task"},
+		},
+	}
+
+	// Add tasks command for testing
+	rootCmd.AddCommand(NewTasksCommand())
+
+	// Capture config from context
+	var cfgFromCommand *config.Config
+
+	// Create a wrapper command to capture config after PersistentPreRunE
+	tasksCmd, _, _ := rootCmd.Find([]string{"tasks"})
+	originalRunE := tasksCmd.RunE
+	tasksCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		var err error
+		cfgFromCommand, err = config.FromContext(cmd.Context())
+		if err != nil {
+			return err
+		}
+		return originalRunE(cmd, args)
+	}
+
+	// Set output buffer
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+
+	// Execute with service in context (to avoid OmniFocus calls)
+	ctx := ContextWithService(context.Background(), mockService)
+	rootCmd.SetArgs([]string{"tasks"})
+	err := rootCmd.ExecuteContext(ctx)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Verify config was loaded into context
+	if cfgFromCommand == nil {
+		t.Fatal("Expected config to be in context, got nil")
+	}
+
+	// Verify config values from file
+	if cfgFromCommand.Output.Format != "json" {
+		t.Errorf("Expected format 'json' from config, got %q", cfgFromCommand.Output.Format)
+	}
+
+	if cfgFromCommand.Timeout != 60*time.Second {
+		t.Errorf("Expected timeout 60s from config, got %v", cfgFromCommand.Timeout)
+	}
+}
+
+func TestRootCommand_PersistentPreRunE_FlagsOverrideConfig(t *testing.T) {
+	// Create temp directory for config
+	tmpDir := t.TempDir()
+	oldHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", oldHome)
+
+	// Write config file with values that should be overridden
+	configContent := `output:
+  format: human
+timeout: 30s
+`
+	configPath := filepath.Join(tmpDir, ".lazyfocus.yaml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	rootCmd := NewRootCommand()
+
+	// Create a mock service
+	mockService := &service.MockOmniFocusService{
+		InboxTasks: []domain.Task{
+			{ID: "task1", Name: "Test task"},
+		},
+	}
+
+	// Add tasks command for testing
+	rootCmd.AddCommand(NewTasksCommand())
+
+	// Capture final flag values
+	var jsonFlagValue bool
+	var timeoutFlagValue time.Duration
+
+	// Create a wrapper command to capture flags after execution
+	tasksCmd, _, _ := rootCmd.Find([]string{"tasks"})
+	originalRunE := tasksCmd.RunE
+	tasksCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		jsonFlagValue = GetJSONFlag()
+		timeoutFlagValue = GetTimeoutFlag()
+		return originalRunE(cmd, args)
+	}
+
+	// Set output buffer
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+
+	// Execute with service in context and command-line flags
+	ctx := ContextWithService(context.Background(), mockService)
+	rootCmd.SetArgs([]string{"tasks", "--json", "--timeout=90s"})
+	err := rootCmd.ExecuteContext(ctx)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Verify command-line flags override config values
+	if !jsonFlagValue {
+		t.Error("Expected --json flag to be true, but it was false")
+	}
+
+	if timeoutFlagValue != 90*time.Second {
+		t.Errorf("Expected --timeout flag to be 90s, got %v", timeoutFlagValue)
 	}
 }

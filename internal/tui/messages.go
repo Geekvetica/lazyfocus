@@ -1,6 +1,9 @@
 package tui
 
-import "github.com/pwojciechowski/lazyfocus/internal/domain"
+import (
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/pwojciechowski/lazyfocus/internal/domain"
+)
 
 // View constants define the different views in the TUI
 const (
@@ -126,3 +129,24 @@ type CommandExecutedMsg struct {
 	Command string
 	Args    []string
 }
+
+// Error State Messages
+
+// ErrorOccurredMsg indicates an error occurred
+type ErrorOccurredMsg struct {
+	Error     error
+	Retryable bool
+	RetryCmd  tea.Cmd
+}
+
+// ErrorDismissedMsg indicates the user dismissed an error.
+//
+// Deprecated: Prefer using errorstate.ErrorDismissedMsg emitted by the
+// error state component. This type exists for backward compatibility.
+type ErrorDismissedMsg struct{}
+
+// RetryRequestedMsg indicates the user requested a retry.
+//
+// Deprecated: The errorstate component handles retries via RetryCmd.
+// This type exists for backward compatibility.
+type RetryRequestedMsg struct{}

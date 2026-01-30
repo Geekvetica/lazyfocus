@@ -354,20 +354,70 @@ func TestJSONFormatter_FormatTag(t *testing.T) {
 	}
 }
 
+// mockJSONLazyFocusError is a test implementation of LazyFocusError for JSON tests
+type mockJSONLazyFocusError struct {
+	message    string
+	code       int
+	suggestion string
+}
+
+func (e *mockJSONLazyFocusError) Error() string {
+	return e.message
+}
+
+func (e *mockJSONLazyFocusError) ExitCode() int {
+	return e.code
+}
+
+func (e *mockJSONLazyFocusError) Suggestion() string {
+	return e.suggestion
+}
+
 func TestJSONFormatter_FormatError(t *testing.T) {
 	formatter := NewJSONFormatter()
 
 	tests := []struct {
-		name string
-		err  error
+		name               string
+		err                error
+		expectCode         bool
+		expectSuggestion   bool
+		expectedCode       float64 // JSON unmarshals numbers as float64
+		expectedSuggestion string
 	}{
 		{
-			name: "simple error",
-			err:  errors.New("something went wrong"),
+			name:             "simple error without code or suggestion",
+			err:              errors.New("something went wrong"),
+			expectCode:       false,
+			expectSuggestion: false,
 		},
 		{
-			name: "formatted error",
-			err:  errors.New("OmniFocus is not running"),
+			name:             "formatted error",
+			err:              errors.New("OmniFocus is not running"),
+			expectCode:       false,
+			expectSuggestion: false,
+		},
+		{
+			name: "LazyFocusError with code and suggestion",
+			err: &mockJSONLazyFocusError{
+				message:    "OmniFocus is not running",
+				code:       2,
+				suggestion: "Please launch OmniFocus",
+			},
+			expectCode:         true,
+			expectSuggestion:   true,
+			expectedCode:       2,
+			expectedSuggestion: "Please launch OmniFocus",
+		},
+		{
+			name: "LazyFocusError with code but no suggestion",
+			err: &mockJSONLazyFocusError{
+				message:    "item not found",
+				code:       3,
+				suggestion: "",
+			},
+			expectCode:       true,
+			expectSuggestion: false,
+			expectedCode:     3,
 		},
 	}
 
@@ -391,6 +441,36 @@ func TestJSONFormatter_FormatError(t *testing.T) {
 			// Verify error message is present
 			if errorMsg == "" {
 				t.Error("FormatError() error message is empty")
+			}
+
+			// Check for code field
+			if tt.expectCode {
+				code, ok := parsed["code"].(float64)
+				if !ok {
+					t.Fatal("FormatError() missing 'code' field for LazyFocusError")
+				}
+				if code != tt.expectedCode {
+					t.Errorf("FormatError() code = %v, want %v", code, tt.expectedCode)
+				}
+			} else {
+				if _, exists := parsed["code"]; exists {
+					t.Error("FormatError() should not include 'code' field for non-LazyFocusError")
+				}
+			}
+
+			// Check for suggestion field
+			if tt.expectSuggestion {
+				suggestion, ok := parsed["suggestion"].(string)
+				if !ok {
+					t.Fatal("FormatError() missing 'suggestion' field for LazyFocusError with suggestion")
+				}
+				if suggestion != tt.expectedSuggestion {
+					t.Errorf("FormatError() suggestion = %v, want %v", suggestion, tt.expectedSuggestion)
+				}
+			} else {
+				if _, exists := parsed["suggestion"]; exists {
+					t.Error("FormatError() should not include 'suggestion' field when not provided")
+				}
 			}
 		})
 	}
